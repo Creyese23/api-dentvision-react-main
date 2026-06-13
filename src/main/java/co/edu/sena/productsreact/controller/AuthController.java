@@ -3,6 +3,7 @@ package co.edu.sena.productsreact.controller;
 import co.edu.sena.productsreact.dto.auth.AuthResponse;
 import co.edu.sena.productsreact.dto.auth.LoginRequest;
 import co.edu.sena.productsreact.dto.auth.RegisterRequest;
+import co.edu.sena.productsreact.repository.UserRepository;
 import co.edu.sena.productsreact.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,18 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserRepository userRepository;
+
+    /** Crea el primer admin. Solo funciona si no existe ningún ROLE_ADMIN. */
+    @PostMapping("/setup")
+    public ResponseEntity<?> setup(@Valid @RequestBody RegisterRequest request) {
+        if (userRepository.existsByRolNombreRol("ROLE_ADMIN")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "Ya existe un administrador registrado"));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(authService.registerConRol(request, "ROLE_ADMIN"));
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {

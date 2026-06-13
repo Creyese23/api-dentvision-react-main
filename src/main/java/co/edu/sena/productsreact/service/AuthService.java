@@ -75,6 +75,34 @@ public class AuthService {
     }
 
     @Transactional
+    public AuthResponse registerConRol(RegisterRequest request, String nombreRol) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new DuplicateResourceException("El email '" + request.email() + "' ya está registrado");
+        }
+
+        Rol rol = rolRepository.findByNombreRol(nombreRol)
+                .orElseThrow(() -> new ResourceNotFoundException("Rol '" + nombreRol + "' no encontrado"));
+
+        User user = User.builder()
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
+                .rol(rol)
+                .estado(true)
+                .build();
+        user = userRepository.save(user);
+
+        PerfilUsuario perfil = PerfilUsuario.builder()
+                .usuario(user)
+                .nombres("").apellidos("")
+                .tipoIdentificacion("").identificacion("")
+                .telefono("").direccion("")
+                .build();
+        perfilRepository.save(perfil);
+
+        return buildAuthResponse(user, perfil);
+    }
+
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.email(), request.password())
