@@ -17,21 +17,21 @@ public class PerfilUsuario {
     @JoinColumn(name = "id_usuario")
     private User usuario;
 
-    @Column(length = 100)
+    @Column(length = 100, nullable = true, columnDefinition = "VARCHAR(100) NULL DEFAULT ''")
     private String nombres;
 
-    @Column(length = 100)
+    @Column(length = 100, nullable = true, columnDefinition = "VARCHAR(100) NULL DEFAULT ''")
     private String apellidos;
 
-    @Column(name = "tipo_identificacion", length = 30)
+    @Column(name = "tipo_identificacion", length = 30, nullable = true, columnDefinition = "VARCHAR(30) NULL DEFAULT ''")
     private String tipoIdentificacion;
 
-    @Column(length = 20)
+    @Column(length = 20, nullable = true, columnDefinition = "VARCHAR(20) NULL DEFAULT ''")
     private String identificacion;
 
-    @Column(length = 20)
+    @Column(length = 20, nullable = true, columnDefinition = "VARCHAR(20) NULL DEFAULT ''")
     private String telefono;
 
-    @Column(length = 200)
+    @Column(length = 200, nullable = true, columnDefinition = "VARCHAR(200) NULL DEFAULT ''")
     private String direccion;
 }
