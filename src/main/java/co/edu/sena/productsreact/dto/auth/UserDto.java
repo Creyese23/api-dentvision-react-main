@@ -4,6 +4,8 @@ public record UserDto(
         Long id,
         String email,
         String rol,
-        String nombres,
-        String apellidos
+        String password,
+        boolean estado
+        /*String nombres,
+        String apellidos*/
 ) {}
