@@ -62,9 +62,9 @@ public class AuthService {
 
         PerfilUsuario perfil = PerfilUsuario.builder()
                 .usuario(user)
-                .nombres(request.nombres())
+                /*.nombres(request.nombres())
                 .apellidos(request.apellidos())
-                .telefono(request.telefono())
+                .telefono(request.telefono())*/
                 .build();
         perfilRepository.save(perfil);
 
@@ -125,7 +125,7 @@ public class AuthService {
         String apellidos = perfil != null ? perfil.getApellidos() : null;
 
         UserDto userDto = new UserDto(user.getId(), user.getEmail(),
-                user.getRol().getNombreRol(), nombres, apellidos);
+                user.getRol().getNombreRol(), user.getPassword(), user.getEstado());
 
         return new AuthResponse(accessToken, rt.getToken(), userDto);
     }
