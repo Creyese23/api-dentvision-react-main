@@ -33,4 +33,13 @@ public class AuthController {
     public ResponseEntity<AuthResponse> refresh(@RequestBody Map<String, String> body) {
         return ResponseEntity.ok(authService.refreshToken(body.get("refreshToken")));
     }
+
+    /**
+     * Configura el sistema por primera vez: crea los 5 roles y el usuario admin.
+     * Si el admin ya existe, devuelve 409. Solo llamar una vez al desplegar.
+     */
+    @PostMapping("/setup")
+    public ResponseEntity<AuthResponse> setup() {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.setup());
+    }
 }
