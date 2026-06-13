@@ -2,6 +2,7 @@ package co.edu.sena.productsreact.service;
 
 import co.edu.sena.productsreact.dto.paciente.PacienteRequest;
 import co.edu.sena.productsreact.dto.paciente.PacienteResponse;
+import co.edu.sena.productsreact.dto.usuario.UsuarioResponse;
 import co.edu.sena.productsreact.entity.Paciente;
 import co.edu.sena.productsreact.entity.PerfilUsuario;
 import co.edu.sena.productsreact.entity.User;
@@ -21,6 +22,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class PacienteService {
 
     private final PacienteRepository pacienteRepository;
@@ -46,6 +48,26 @@ public class PacienteService {
         Paciente p = pacienteRepository.findByUsuarioId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de paciente registrado"));
         return PacienteResponse.from(p);
+    }
+
+    public List<UsuarioResponse> listarPendientesActivacion() {
+        return userRepository.findByRolNombreRolAndEstadoTrue("ROLE_PACIENTE").stream()
+                .filter(u -> !pacienteRepository.existsByUsuarioId(u.getId()))
+                .map(UsuarioResponse::from).toList();
+    }
+
+    @Transactional
+    public PacienteResponse activarPaciente(Long idUsuario) {
+        User user = userRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario " + idUsuario + " no encontrado"));
+        if (pacienteRepository.existsByUsuarioId(idUsuario)) {
+            throw new DuplicateResourceException("El usuario ya tiene un perfil de paciente activo");
+        }
+        Paciente p = Paciente.builder()
+                .usuario(user)
+                .estado(true)
+                .build();
+        return PacienteResponse.from(pacienteRepository.save(p));
     }
 
     @Transactional

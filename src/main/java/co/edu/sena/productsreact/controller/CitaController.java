@@ -1,5 +1,6 @@
 package co.edu.sena.productsreact.controller;
 
+import co.edu.sena.productsreact.dto.cita.AgendarCitaRequest;
 import co.edu.sena.productsreact.dto.cita.CitaRequest;
 import co.edu.sena.productsreact.dto.cita.CitaResponse;
 import co.edu.sena.productsreact.service.CitaService;
@@ -40,8 +41,14 @@ public class CitaController {
         return ResponseEntity.ok(citaService.listarPorOdontologo(id));
     }
 
+    @PostMapping("/agendar")
+    @PreAuthorize("hasAuthority('ROLE_PACIENTE')")
+    public ResponseEntity<CitaResponse> agendar(Authentication auth, @Valid @RequestBody AgendarCitaRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(citaService.agendarCita(auth.getName(), request));
+    }
+
     @GetMapping("/rango")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_RECEPCIONISTA')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_RECEPCIONISTA','ROLE_PACIENTE')")
     public ResponseEntity<List<CitaResponse>> porRango(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {

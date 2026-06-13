@@ -25,6 +25,18 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.listar());
     }
 
+    @GetMapping("/todos")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<List<UsuarioResponse>> listarTodos() {
+        return ResponseEntity.ok(usuarioService.listarTodos());
+    }
+
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<UsuarioResponse> toggleEstado(@PathVariable Long id) {
+        return ResponseEntity.ok(usuarioService.toggleEstado(id));
+    }
+
     @PostMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<UsuarioResponse> crear(@Valid @RequestBody CreateUsuarioRequest request) {

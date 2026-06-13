@@ -19,6 +19,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UsuarioService {
 
     private final UserRepository userRepository;
@@ -30,6 +31,19 @@ public class UsuarioService {
         return userRepository.findAll().stream()
                 .filter(u -> Boolean.TRUE.equals(u.getEstado()))
                 .map(UsuarioResponse::from).toList();
+    }
+
+    public List<UsuarioResponse> listarTodos() {
+        return userRepository.findAll().stream()
+                .map(UsuarioResponse::from).toList();
+    }
+
+    @Transactional
+    public UsuarioResponse toggleEstado(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario " + id + " no encontrado"));
+        user.setEstado(!Boolean.TRUE.equals(user.getEstado()));
+        return UsuarioResponse.from(userRepository.save(user));
     }
 
     @Transactional

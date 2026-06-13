@@ -1,5 +1,6 @@
 package co.edu.sena.productsreact.service;
 
+import co.edu.sena.productsreact.dto.cita.AgendarCitaRequest;
 import co.edu.sena.productsreact.dto.cita.CitaRequest;
 import co.edu.sena.productsreact.dto.cita.CitaResponse;
 import co.edu.sena.productsreact.entity.Cita;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class CitaService {
 
     private final CitaRepository citaRepository;
@@ -53,6 +55,26 @@ public class CitaService {
 
     public CitaResponse obtener(Long id) {
         return CitaResponse.from(getOrThrow(id));
+    }
+
+    @Transactional
+    public CitaResponse agendarCita(String email, AgendarCitaRequest req) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Paciente paciente = pacienteRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de paciente registrado"));
+        Empleado odontologo = empleadoRepository.findById(req.idOdontologo())
+                .orElseThrow(() -> new ResourceNotFoundException("Odontólogo no encontrado"));
+
+        boolean ocupado = citaRepository.findByOdontologoIdAndFechaEliminacionIsNull(req.idOdontologo())
+                .stream().anyMatch(c -> c.getFechaHora().equals(req.fechaHora()) && !"CANCELADA".equals(c.getEstado()));
+        if (ocupado) throw new IllegalArgumentException("El horario seleccionado ya está ocupado");
+
+        Cita cita = Cita.builder()
+                .paciente(paciente).odontologo(odontologo)
+                .fechaHora(req.fechaHora()).motivo(req.motivo())
+                .estado("PROGRAMADA").build();
+        return CitaResponse.from(citaRepository.save(cita));
     }
 
     @Transactional

@@ -4,12 +4,14 @@ import co.edu.sena.productsreact.dto.auth.AuthResponse;
 import co.edu.sena.productsreact.dto.auth.LoginRequest;
 import co.edu.sena.productsreact.dto.auth.RegisterRequest;
 import co.edu.sena.productsreact.dto.auth.UserDto;
+import co.edu.sena.productsreact.entity.Paciente;
 import co.edu.sena.productsreact.entity.PerfilUsuario;
 import co.edu.sena.productsreact.entity.RefreshToken;
 import co.edu.sena.productsreact.entity.Rol;
 import co.edu.sena.productsreact.entity.User;
 import co.edu.sena.productsreact.exception.DuplicateResourceException;
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
+import co.edu.sena.productsreact.repository.PacienteRepository;
 import co.edu.sena.productsreact.repository.PerfilUsuarioRepository;
 import co.edu.sena.productsreact.repository.RefreshTokenRepository;
 import co.edu.sena.productsreact.repository.RolRepository;
@@ -35,6 +37,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RolRepository rolRepository;
     private final PerfilUsuarioRepository perfilRepository;
+    private final PacienteRepository pacienteRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -70,6 +73,11 @@ public class AuthService {
                 .direccion("")
                 .build();
         perfilRepository.save(perfil);
+
+        pacienteRepository.save(Paciente.builder()
+                .usuario(user)
+                .estado(true)
+                .build());
 
         return buildAuthResponse(user, perfil);
     }
