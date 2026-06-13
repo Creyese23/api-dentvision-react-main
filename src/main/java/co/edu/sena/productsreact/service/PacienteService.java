@@ -51,7 +51,8 @@ public class PacienteService {
     }
 
     public List<UsuarioResponse> listarPendientesActivacion() {
-        return userRepository.findPacientesSinActivar().stream()
+        return userRepository.findByRolNombreRolAndEstadoTrue("ROLE_PACIENTE").stream()
+                .filter(u -> !pacienteRepository.existsByUsuarioId(u.getId()))
                 .map(UsuarioResponse::from).toList();
     }
 

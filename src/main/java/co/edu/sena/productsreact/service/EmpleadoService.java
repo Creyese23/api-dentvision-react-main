@@ -59,7 +59,9 @@ public class EmpleadoService {
     );
 
     public List<UsuarioResponse> listarPendientesActivacion() {
-        return userRepository.findEmpleadosSinActivar().stream()
+        List<String> roles = List.of("ROLE_ODONTOLOGO", "ROLE_TECNICO", "ROLE_RECEPCIONISTA", "ROLE_ADMIN");
+        return userRepository.findByRolNombreRolInAndEstadoTrue(roles).stream()
+                .filter(u -> !empleadoRepository.existsByUsuarioId(u.getId()))
                 .map(UsuarioResponse::from).toList();
     }
 
