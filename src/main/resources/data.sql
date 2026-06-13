@@ -1,5 +1,5 @@
 -- =============================================
--- DENTVISION - Seed Data
+-- DENTVISION - Seed Data (MySQL compatible)
 -- =============================================
 
 -- Roles
@@ -19,12 +19,15 @@ INSERT INTO roles (nombre_rol)
 SELECT 'ROLE_PACIENTE' WHERE NOT EXISTS (SELECT 1 FROM roles WHERE nombre_rol = 'ROLE_PACIENTE');
 
 -- Usuario admin (password: Admin1234!)
+-- Se obtiene id_rol directamente con FROM roles para compatibilidad MySQL
 INSERT INTO usuarios (email, password, estado, id_rol)
 SELECT 'admin@dentvision.co',
        '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
        true,
-       (SELECT id FROM roles WHERE nombre_rol = 'ROLE_ADMIN')
-WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE email = 'admin@dentvision.co');
+       r.id
+FROM roles r
+WHERE r.nombre_rol = 'ROLE_ADMIN'
+  AND NOT EXISTS (SELECT 1 FROM usuarios WHERE email = 'admin@dentvision.co');
 
 INSERT INTO perfiles_usuario (id_usuario, nombres, apellidos, telefono)
 SELECT u.id, 'Administrador', 'DENTVISION', '3001234567'
