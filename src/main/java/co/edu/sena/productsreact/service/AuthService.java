@@ -64,6 +64,10 @@ public class AuthService {
                 .usuario(user)
                 .nombres("")
                 .apellidos("")
+                .tipoIdentificacion("")
+                .identificacion("")
+                .telefono("")
+                .direccion("")
                 .build();
         perfilRepository.save(perfil);
 

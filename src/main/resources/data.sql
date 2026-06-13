@@ -2,6 +2,15 @@
 -- DENTVISION - Seed Data (MySQL compatible)
 -- =============================================
 
+-- Corregir columnas NOT NULL en perfiles_usuario que deben ser opcionales
+ALTER TABLE perfiles_usuario
+    MODIFY COLUMN nombres VARCHAR(100) NULL DEFAULT '',
+    MODIFY COLUMN apellidos VARCHAR(100) NULL DEFAULT '',
+    MODIFY COLUMN tipo_identificacion VARCHAR(30) NULL DEFAULT '',
+    MODIFY COLUMN identificacion VARCHAR(20) NULL DEFAULT '',
+    MODIFY COLUMN telefono VARCHAR(20) NULL DEFAULT '',
+    MODIFY COLUMN direccion VARCHAR(200) NULL DEFAULT '';
+
 -- Roles
 INSERT INTO roles (nombre_rol)
 SELECT 'ROLE_ADMIN' WHERE NOT EXISTS (SELECT 1 FROM roles WHERE nombre_rol = 'ROLE_ADMIN');
@@ -19,7 +28,6 @@ INSERT INTO roles (nombre_rol)
 SELECT 'ROLE_PACIENTE' WHERE NOT EXISTS (SELECT 1 FROM roles WHERE nombre_rol = 'ROLE_PACIENTE');
 
 -- Usuario admin (password: Admin1234!)
--- Se obtiene id_rol directamente con FROM roles para compatibilidad MySQL
 INSERT INTO usuarios (email, password, estado, id_rol)
 SELECT 'admin@dentvision.co',
        '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
@@ -29,8 +37,8 @@ FROM roles r
 WHERE r.nombre_rol = 'ROLE_ADMIN'
   AND NOT EXISTS (SELECT 1 FROM usuarios WHERE email = 'admin@dentvision.co');
 
-INSERT INTO perfiles_usuario (id_usuario, nombres, apellidos, telefono)
-SELECT u.id, 'Administrador', 'DENTVISION', '3001234567'
+INSERT INTO perfiles_usuario (id_usuario, nombres, apellidos, tipo_identificacion, identificacion, telefono, direccion)
+SELECT u.id, 'Administrador', 'DentVision', 'NIT', '000000000', '3001234567', ''
 FROM usuarios u
 WHERE u.email = 'admin@dentvision.co'
   AND NOT EXISTS (SELECT 1 FROM perfiles_usuario p WHERE p.id_usuario = u.id);
