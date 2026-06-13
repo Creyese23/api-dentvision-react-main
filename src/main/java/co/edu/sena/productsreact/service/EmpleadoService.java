@@ -26,12 +26,12 @@ public class EmpleadoService {
     private final PerfilUsuarioRepository perfilRepository;
 
     public List<EmpleadoResponse> listarActivos() {
-        return empleadoRepository.findByEstadoTrue().stream()
+        return empleadoRepository.findByEstadoTrueAndFechaEliminacionIsNull().stream()
                 .map(EmpleadoResponse::from).toList();
     }
 
     public List<EmpleadoResponse> listarPorCargo(String cargo) {
-        return empleadoRepository.findByCargo(cargo).stream()
+        return empleadoRepository.findByCargoAndEstadoTrueAndFechaEliminacionIsNull(cargo).stream()
                 .map(EmpleadoResponse::from).toList();
     }
 

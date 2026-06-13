@@ -9,8 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface EmpleadoRepository extends JpaRepository<Empleado, Long> {
-    List<Empleado> findByEstadoTrue();
-    List<Empleado> findByCargo(String cargo);
+    List<Empleado> findByEstadoTrueAndFechaEliminacionIsNull();
+    List<Empleado> findByCargoAndEstadoTrueAndFechaEliminacionIsNull(String cargo);
     Optional<Empleado> findByUsuarioId(Long idUsuario);
     boolean existsByUsuarioId(Long idUsuario);
 }
