@@ -39,6 +39,14 @@ public class EmpleadoService {
         return EmpleadoResponse.from(getOrThrow(id));
     }
 
+    public EmpleadoResponse obtenerMiEmpleado(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Empleado e = empleadoRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de empleado registrado"));
+        return EmpleadoResponse.from(e);
+    }
+
     @Transactional
     public EmpleadoResponse crear(EmpleadoRequest req) {
         User usuario = userRepository.findById(req.idUsuario())

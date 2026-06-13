@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,12 @@ import java.util.List;
 public class EmpleadoController {
 
     private final EmpleadoService empleadoService;
+
+    @GetMapping("/me")
+    @PreAuthorize("hasAnyAuthority('ROLE_ODONTOLOGO','ROLE_TECNICO','ROLE_RECEPCIONISTA','ROLE_ADMIN')")
+    public ResponseEntity<EmpleadoResponse> miEmpleado(Authentication auth) {
+        return ResponseEntity.ok(empleadoService.obtenerMiEmpleado(auth.getName()));
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA')")

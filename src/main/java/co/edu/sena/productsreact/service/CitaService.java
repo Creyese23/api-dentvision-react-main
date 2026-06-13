@@ -6,9 +6,11 @@ import co.edu.sena.productsreact.entity.Cita;
 import co.edu.sena.productsreact.entity.Empleado;
 import co.edu.sena.productsreact.entity.Paciente;
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
+import co.edu.sena.productsreact.entity.User;
 import co.edu.sena.productsreact.repository.CitaRepository;
 import co.edu.sena.productsreact.repository.EmpleadoRepository;
 import co.edu.sena.productsreact.repository.PacienteRepository;
+import co.edu.sena.productsreact.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,16 @@ public class CitaService {
     private final CitaRepository citaRepository;
     private final PacienteRepository pacienteRepository;
     private final EmpleadoRepository empleadoRepository;
+    private final UserRepository userRepository;
+
+    public List<CitaResponse> listarMisCitas(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Paciente paciente = pacienteRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente no encontrado"));
+        return citaRepository.findByPacienteIdAndFechaEliminacionIsNull(paciente.getId())
+                .stream().map(CitaResponse::from).toList();
+    }
 
     public List<CitaResponse> listarPorPaciente(Long pacienteId) {
         return citaRepository.findByPacienteIdAndFechaEliminacionIsNull(pacienteId)
