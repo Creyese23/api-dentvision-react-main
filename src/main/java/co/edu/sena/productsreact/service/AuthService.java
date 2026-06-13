@@ -51,31 +51,24 @@ public class AuthService {
 
         Rol rolPaciente = rolRepository.findByNombreRol("ROLE_PACIENTE")
                 .orElseThrow(() -> new ResourceNotFoundException("Rol ROLE_PACIENTE no encontrado"));
-try {
-    User user = User.builder()
-            .email(request.email())
-            .password(passwordEncoder.encode(request.password()))
-            .rol(rolPaciente)
-            .estado(true)
-            .build();
-    user = userRepository.save(user);
 
-    PerfilUsuario perfil = PerfilUsuario.builder()
-            .usuario(user)
-            .nombres(request.nombres())
-            .apellidos(request.apellidos())
-            .telefono(request.telefono())
-            .build();
-    perfilRepository.save(perfil);
-    return buildAuthResponse(user, perfil);
-}catch (Exception e){
-    System.out.println(e.getMessage());
+        User user = User.builder()
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
+                .rol(rolPaciente)
+                .estado(true)
+                .build();
+        user = userRepository.save(user);
 
-    return buildAuthResponse(null, null);
-}
+        PerfilUsuario perfil = PerfilUsuario.builder()
+                .usuario(user)
+                .nombres(request.nombres())
+                .apellidos(request.apellidos())
+                .telefono(request.telefono())
+                .build();
+        perfilRepository.save(perfil);
 
-
-
+        return buildAuthResponse(user, perfil);
     }
 
     @Transactional
