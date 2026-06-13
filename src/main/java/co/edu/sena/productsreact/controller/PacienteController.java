@@ -2,6 +2,7 @@ package co.edu.sena.productsreact.controller;
 
 import co.edu.sena.productsreact.dto.paciente.PacienteRequest;
 import co.edu.sena.productsreact.dto.paciente.PacienteResponse;
+import co.edu.sena.productsreact.dto.usuario.UsuarioResponse;
 import co.edu.sena.productsreact.service.PacienteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,18 @@ public class PacienteController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_RECEPCIONISTA','ROLE_PACIENTE')")
     public ResponseEntity<PacienteResponse> obtener(@PathVariable Long id) {
         return ResponseEntity.ok(pacienteService.obtener(id));
+    }
+
+    @GetMapping("/pendientes-activacion")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<List<UsuarioResponse>> pendientesActivacion() {
+        return ResponseEntity.ok(pacienteService.listarPendientesActivacion());
+    }
+
+    @PostMapping("/activar/{idUsuario}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<PacienteResponse> activar(@PathVariable Long idUsuario) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(pacienteService.activarPaciente(idUsuario));
     }
 
     @PostMapping
