@@ -62,6 +62,8 @@ public class AuthService {
 
         PerfilUsuario perfil = PerfilUsuario.builder()
                 .usuario(user)
+                .nombres("")
+                .apellidos("")
                 .build();
         perfilRepository.save(perfil);
 
