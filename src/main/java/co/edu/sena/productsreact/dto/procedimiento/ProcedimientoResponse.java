@@ -1,5 +1,7 @@
 package co.edu.sena.productsreact.dto.procedimiento;
 
+import co.edu.sena.productsreact.entity.Empleado;
+import co.edu.sena.productsreact.entity.PerfilUsuario;
 import co.edu.sena.productsreact.entity.Procedimiento;
 
 import java.math.BigDecimal;
@@ -19,15 +21,19 @@ public record ProcedimientoResponse(
         String observaciones
 ) {
     public static ProcedimientoResponse from(Procedimiento p) {
-        String tecnico = p.getTecnico() != null
-                ? p.getTecnico().getNombres() + " " + p.getTecnico().getApellidos()
-                : null;
         return new ProcedimientoResponse(
                 p.getId(), p.getCita().getId(),
                 p.getTecnico() != null ? p.getTecnico().getId() : null,
-                tecnico, p.getNombre(), p.getDescripcion(),
+                p.getTecnico() != null ? nombreCompletoEmpleado(p.getTecnico()) : null,
+                p.getNombre(), p.getDescripcion(),
                 p.getCosto(), p.getEstado(),
                 p.getFechaInicio(), p.getFechaFin(), p.getObservaciones()
         );
+    }
+
+    private static String nombreCompletoEmpleado(Empleado e) {
+        PerfilUsuario perfil = e.getUsuario() != null ? e.getUsuario().getPerfil() : null;
+        if (perfil == null) return "";
+        return perfil.getNombres() + " " + perfil.getApellidos();
     }
 }

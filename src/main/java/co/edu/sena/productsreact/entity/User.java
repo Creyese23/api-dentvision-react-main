@@ -34,6 +34,9 @@ public class User {
     @JoinColumn(name = "id_rol", nullable = false)
     private Rol rol;
 
+    @OneToOne(mappedBy = "usuario", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private PerfilUsuario perfil;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
