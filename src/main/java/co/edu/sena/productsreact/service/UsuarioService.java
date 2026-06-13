@@ -33,6 +33,19 @@ public class UsuarioService {
                 .map(UsuarioResponse::from).toList();
     }
 
+    public List<UsuarioResponse> listarTodos() {
+        return userRepository.findAll().stream()
+                .map(UsuarioResponse::from).toList();
+    }
+
+    @Transactional
+    public UsuarioResponse toggleEstado(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario " + id + " no encontrado"));
+        user.setEstado(!Boolean.TRUE.equals(user.getEstado()));
+        return UsuarioResponse.from(userRepository.save(user));
+    }
+
     @Transactional
     public UsuarioResponse crear(CreateUsuarioRequest req) {
         if (userRepository.existsByEmail(req.email())) {
