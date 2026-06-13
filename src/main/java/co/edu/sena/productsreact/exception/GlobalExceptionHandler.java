@@ -112,7 +112,7 @@ public class GlobalExceptionHandler {
         ApiError error = ApiError.of(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
-                "Ocurrió un error inesperado en el servidor",
+                ex.getMessage() != null ? ex.getMessage() : "Ocurrió un error inesperado en el servidor",
                 req.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
