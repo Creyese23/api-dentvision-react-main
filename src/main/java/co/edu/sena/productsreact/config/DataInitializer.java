@@ -54,9 +54,9 @@ public class DataInitializer implements ApplicationRunner {
         for (String sql : alters) {
             try {
                 jdbcTemplate.execute(sql);
-                log.debug("Ejecutado: {}", sql);
+                log.info("ALTER OK: {}", sql);
             } catch (Exception ex) {
-                log.warn("No se pudo ejecutar '{}': {}", sql, ex.getMessage());
+                log.error("ALTER FALLÓ '{}': {}", sql, ex.getMessage());
             }
         }
     }
@@ -65,18 +65,28 @@ public class DataInitializer implements ApplicationRunner {
     private void dropTriggerIfExists() {
         List<String> triggers = List.of(
             "after_insert_usuario",
+            "after_insert_usuarios",
             "trg_crear_perfil",
+            "trg_crear_perfil_usuario",
             "crear_perfil_usuario",
+            "crear_perfil",
             "trg_perfil_usuario",
+            "trg_perfil",
             "after_usuario_insert",
-            "tg_usuarios_insert"
+            "after_usuarios_insert",
+            "tg_usuarios_insert",
+            "tg_usuario_insert",
+            "ins_perfil_usuario",
+            "ins_usuarios",
+            "trigger_usuarios",
+            "trigger_usuario"
         );
         for (String name : triggers) {
             try {
                 jdbcTemplate.execute("DROP TRIGGER IF EXISTS " + name);
-                log.debug("Trigger '{}' eliminado (si existía).", name);
+                log.info("DROP TRIGGER OK: {}", name);
             } catch (Exception ex) {
-                log.warn("No se pudo eliminar trigger '{}': {}", name, ex.getMessage());
+                log.error("DROP TRIGGER FALLÓ '{}': {}", name, ex.getMessage());
             }
         }
         // Búsqueda dinámica de triggers sobre la tabla usuarios
