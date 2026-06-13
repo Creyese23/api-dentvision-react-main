@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,8 +20,20 @@ public class ProcedimientoController {
 
     private final ProcedimientoService procedimientoService;
 
+    @GetMapping("/mi-historial")
+    @PreAuthorize("hasAuthority('ROLE_PACIENTE')")
+    public ResponseEntity<List<ProcedimientoResponse>> miHistorial(Authentication auth) {
+        return ResponseEntity.ok(procedimientoService.listarMiHistorial(auth.getName()));
+    }
+
+    @GetMapping("/tecnico")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_TECNICO')")
+    public ResponseEntity<List<ProcedimientoResponse>> porTecnico(Authentication auth) {
+        return ResponseEntity.ok(procedimientoService.listarPorTecnicoAutenticado(auth.getName()));
+    }
+
     @GetMapping("/cita/{citaId}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<List<ProcedimientoResponse>> porCita(@PathVariable Long citaId) {
         return ResponseEntity.ok(procedimientoService.listarPorCita(citaId));
     }

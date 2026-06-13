@@ -40,6 +40,14 @@ public class PacienteService {
         return PacienteResponse.from(getOrThrow(id));
     }
 
+    public PacienteResponse obtenerMiPaciente(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Paciente p = pacienteRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de paciente registrado"));
+        return PacienteResponse.from(p);
+    }
+
     @Transactional
     public PacienteResponse crear(PacienteRequest req) {
         User usuario = userRepository.findById(req.idUsuario())

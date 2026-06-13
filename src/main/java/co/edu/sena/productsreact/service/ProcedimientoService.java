@@ -6,9 +6,13 @@ import co.edu.sena.productsreact.entity.Cita;
 import co.edu.sena.productsreact.entity.Empleado;
 import co.edu.sena.productsreact.entity.Procedimiento;
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
+import co.edu.sena.productsreact.entity.Paciente;
+import co.edu.sena.productsreact.entity.User;
 import co.edu.sena.productsreact.repository.CitaRepository;
 import co.edu.sena.productsreact.repository.EmpleadoRepository;
+import co.edu.sena.productsreact.repository.PacienteRepository;
 import co.edu.sena.productsreact.repository.ProcedimientoRepository;
+import co.edu.sena.productsreact.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +27,26 @@ public class ProcedimientoService {
     private final ProcedimientoRepository procedimientoRepository;
     private final CitaRepository citaRepository;
     private final EmpleadoRepository empleadoRepository;
+    private final UserRepository userRepository;
+    private final PacienteRepository pacienteRepository;
+
+    public List<ProcedimientoResponse> listarMiHistorial(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Paciente paciente = pacienteRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente no encontrado"));
+        return procedimientoRepository.findByCitaPacienteIdAndFechaEliminacionIsNull(paciente.getId())
+                .stream().map(ProcedimientoResponse::from).toList();
+    }
+
+    public List<ProcedimientoResponse> listarPorTecnicoAutenticado(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Empleado tecnico = empleadoRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado"));
+        return procedimientoRepository.findByTecnicoIdAndFechaEliminacionIsNull(tecnico.getId())
+                .stream().map(ProcedimientoResponse::from).toList();
+    }
 
     public List<ProcedimientoResponse> listarPorCita(Long citaId) {
         return procedimientoRepository.findByCitaIdAndFechaEliminacionIsNull(citaId)

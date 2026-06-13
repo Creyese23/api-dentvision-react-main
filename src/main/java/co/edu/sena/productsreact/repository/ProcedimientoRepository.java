@@ -10,4 +10,5 @@ import java.util.List;
 public interface ProcedimientoRepository extends JpaRepository<Procedimiento, Long> {
     List<Procedimiento> findByCitaIdAndFechaEliminacionIsNull(Long citaId);
     List<Procedimiento> findByTecnicoIdAndFechaEliminacionIsNull(Long tecnicoId);
+    List<Procedimiento> findByCitaPacienteIdAndFechaEliminacionIsNull(Long pacienteId);
 }
