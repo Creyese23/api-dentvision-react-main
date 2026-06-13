@@ -13,7 +13,7 @@ import java.util.Optional;
 @Repository
 public interface PacienteRepository extends JpaRepository<Paciente, Long> {
 
-    List<Paciente> findByEstadoTrue();
+    List<Paciente> findByEstadoTrueAndFechaEliminacionIsNull();
 
     Optional<Paciente> findByUsuarioId(Long idUsuario);
 

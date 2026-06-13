@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -40,10 +39,6 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-
-    private static final List<String> TODOS_LOS_ROLES = List.of(
-            "ROLE_ADMIN", "ROLE_ODONTOLOGO", "ROLE_RECEPCIONISTA", "ROLE_TECNICO", "ROLE_PACIENTE"
-    );
 
     @Value("${app.jwt.refresh-expiration-days:7}")
     private int refreshExpirationDays;
@@ -110,46 +105,6 @@ public class AuthService {
         User user = rt.getUsuario();
         PerfilUsuario perfil = perfilRepository.findById(user.getId()).orElse(null);
         return buildAuthResponse(user, perfil);
-    }
-
-    /**
-     * Configuración inicial del sistema: crea los 5 roles y el usuario admin.
-     * Solo funciona si aún no existe el admin (primera vez).
-     */
-    @Transactional
-    public AuthResponse setup() {
-        if (userRepository.existsByEmail("admin@dentvision.co")) {
-            throw new DuplicateResourceException("El sistema ya fue configurado. El admin ya existe.");
-        }
-
-        for (String nombreRol : TODOS_LOS_ROLES) {
-            rolRepository.findByNombreRol(nombreRol)
-                    .orElseGet(() -> rolRepository.save(Rol.builder().nombreRol(nombreRol).build()));
-        }
-
-        Rol rolAdmin = rolRepository.findByNombreRol("ROLE_ADMIN")
-                .orElseThrow(() -> new IllegalStateException("ROLE_ADMIN no pudo crearse"));
-
-        User admin = User.builder()
-                .email("admin@dentvision.co")
-                .password(passwordEncoder.encode("Admin1234!"))
-                .rol(rolAdmin)
-                .estado(true)
-                .build();
-        admin = userRepository.save(admin);
-
-        PerfilUsuario perfil = PerfilUsuario.builder()
-                .usuario(admin)
-                .nombres("Administrador")
-                .apellidos("DentVision")
-                .tipoIdentificacion("NIT")
-                .identificacion("000000000")
-                .telefono("3001234567")
-                .direccion("")
-                .build();
-        perfilRepository.save(perfil);
-
-        return buildAuthResponse(admin, perfil);
     }
 
     private AuthResponse buildAuthResponse(User user, PerfilUsuario perfil) {

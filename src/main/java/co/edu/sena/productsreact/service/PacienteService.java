@@ -28,7 +28,7 @@ public class PacienteService {
     private final PerfilUsuarioRepository perfilRepository;
 
     public List<PacienteResponse> listarActivos() {
-        return pacienteRepository.findByEstadoTrue().stream()
+        return pacienteRepository.findByEstadoTrueAndFechaEliminacionIsNull().stream()
                 .map(PacienteResponse::from).toList();
     }
 
@@ -48,7 +48,8 @@ public class PacienteService {
         if (pacienteRepository.existsByUsuarioId(req.idUsuario())) {
             throw new DuplicateResourceException("Ya existe un paciente vinculado al usuario " + req.idUsuario());
         }
-        if (perfilRepository.existsByIdentificacion(req.identificacion())) {
+        if (req.identificacion() != null && !req.identificacion().isBlank()
+                && perfilRepository.existsByIdentificacion(req.identificacion())) {
             throw new DuplicateResourceException("Ya existe un perfil con identificación " + req.identificacion());
         }
 
@@ -57,12 +58,12 @@ public class PacienteService {
             perfil = new PerfilUsuario();
             perfil.setUsuario(usuario);
         }
-        perfil.setNombres(req.nombres());
-        perfil.setApellidos(req.apellidos());
-        perfil.setIdentificacion(req.identificacion());
-        perfil.setTipoIdentificacion(req.tipoIdentificacion());
-        perfil.setTelefono(req.telefono());
-        perfil.setDireccion(req.direccion());
+        perfil.setNombres(req.nombres() != null ? req.nombres() : "");
+        perfil.setApellidos(req.apellidos() != null ? req.apellidos() : "");
+        perfil.setIdentificacion(req.identificacion() != null ? req.identificacion() : "");
+        perfil.setTipoIdentificacion(req.tipoIdentificacion() != null ? req.tipoIdentificacion() : "");
+        perfil.setTelefono(req.telefono() != null ? req.telefono() : "");
+        perfil.setDireccion(req.direccion() != null ? req.direccion() : "");
         perfilRepository.save(perfil);
 
         Paciente p = Paciente.builder()
@@ -84,12 +85,12 @@ public class PacienteService {
                 perfil = new PerfilUsuario();
                 perfil.setUsuario(p.getUsuario());
             }
-            perfil.setNombres(req.nombres());
-            perfil.setApellidos(req.apellidos());
-            perfil.setIdentificacion(req.identificacion());
-            perfil.setTipoIdentificacion(req.tipoIdentificacion());
-            perfil.setTelefono(req.telefono());
-            perfil.setDireccion(req.direccion());
+            perfil.setNombres(req.nombres() != null ? req.nombres() : "");
+            perfil.setApellidos(req.apellidos() != null ? req.apellidos() : "");
+            perfil.setIdentificacion(req.identificacion() != null ? req.identificacion() : "");
+            perfil.setTipoIdentificacion(req.tipoIdentificacion() != null ? req.tipoIdentificacion() : "");
+            perfil.setTelefono(req.telefono() != null ? req.telefono() : "");
+            perfil.setDireccion(req.direccion() != null ? req.direccion() : "");
             perfilRepository.save(perfil);
         }
         return PacienteResponse.from(pacienteRepository.save(p));
