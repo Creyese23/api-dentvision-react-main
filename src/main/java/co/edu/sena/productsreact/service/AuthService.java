@@ -128,9 +128,7 @@ public class AuthService {
                 user.getId(),
                 user.getEmail(),
                 user.getRol().getNombreRol(),
-                user.getEstado(),
-                perfil != null ? perfil.getNombres() : null,
-                perfil != null ? perfil.getApellidos() : null
+                user.getEstado()
         );
 
         return new AuthResponse(accessToken, rt.getToken(), userDto);
