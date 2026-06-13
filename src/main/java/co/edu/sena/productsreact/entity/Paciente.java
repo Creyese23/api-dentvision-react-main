@@ -20,26 +20,8 @@ public class Paciente {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario")
+    @JoinColumn(name = "id_usuario", nullable = false, unique = true)
     private User usuario;
-
-    @Column(length = 100)
-    private String nombres;
-
-    @Column(length = 100)
-    private String apellidos;
-
-    @Column(length = 20)
-    private String documento;
-
-    @Column(name = "tipo_identificacion", length = 30)
-    private String tipoIdentificacion;
-
-    @Column(length = 20)
-    private String telefono;
-
-    @Column(length = 20)
-    private String genero;
 
     @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
