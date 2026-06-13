@@ -35,13 +35,18 @@ public class DataInitializer implements ApplicationRunner {
     );
 
     @Override
-    @Transactional
     public void run(ApplicationArguments args) {
-        seedRoles();
-        seedAdminUser();
+        try {
+            seedRoles();
+            seedAdminUser();
+        } catch (Exception ex) {
+            // El seed no debe impedir que la aplicación arranque
+            log.error("Error durante el seed inicial de datos: {}", ex.getMessage(), ex);
+        }
     }
 
-    private void seedRoles() {
+    @Transactional
+    public void seedRoles() {
         for (String nombreRol : ROLES) {
             if (rolRepository.findByNombreRol(nombreRol).isEmpty()) {
                 rolRepository.save(Rol.builder().nombreRol(nombreRol).build());
@@ -50,14 +55,16 @@ public class DataInitializer implements ApplicationRunner {
         }
     }
 
-    private void seedAdminUser() {
+    @Transactional
+    public void seedAdminUser() {
         String adminEmail = "admin@dentvision.co";
         if (userRepository.existsByEmail(adminEmail)) {
+            log.debug("Usuario admin ya existe, omitiendo seed.");
             return;
         }
 
         Rol rolAdmin = rolRepository.findByNombreRol("ROLE_ADMIN")
-                .orElseThrow(() -> new IllegalStateException("ROLE_ADMIN no encontrado después del seed"));
+                .orElseThrow(() -> new IllegalStateException("ROLE_ADMIN no encontrado después del seed de roles"));
 
         User admin = User.builder()
                 .email(adminEmail)
@@ -67,11 +74,16 @@ public class DataInitializer implements ApplicationRunner {
                 .build();
         admin = userRepository.save(admin);
 
+        // Se proveen cadenas vacías en todos los campos para evitar
+        // errores de NOT NULL en columnas de perfiles_usuario
         PerfilUsuario perfil = PerfilUsuario.builder()
                 .usuario(admin)
                 .nombres("Administrador")
-                .apellidos("DENTVISION")
+                .apellidos("DentVision")
+                .tipoIdentificacion("NIT")
+                .identificacion("000000000")
                 .telefono("3001234567")
+                .direccion("")
                 .build();
         perfilRepository.save(perfil);
 
