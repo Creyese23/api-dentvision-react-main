@@ -2,6 +2,7 @@ package co.edu.sena.productsreact.controller;
 
 import co.edu.sena.productsreact.dto.empleado.EmpleadoRequest;
 import co.edu.sena.productsreact.dto.empleado.EmpleadoResponse;
+import co.edu.sena.productsreact.dto.usuario.UsuarioResponse;
 import co.edu.sena.productsreact.service.EmpleadoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,18 @@ public class EmpleadoController {
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA')")
     public ResponseEntity<List<EmpleadoResponse>> listar() {
         return ResponseEntity.ok(empleadoService.listarActivos());
+    }
+
+    @GetMapping("/pendientes-activacion")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<List<UsuarioResponse>> pendientesActivacion() {
+        return ResponseEntity.ok(empleadoService.listarPendientesActivacion());
+    }
+
+    @PostMapping("/activar/{idUsuario}")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<EmpleadoResponse> activar(@PathVariable Long idUsuario) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(empleadoService.activarEmpleado(idUsuario));
     }
 
     @GetMapping("/cargo/{cargo}")

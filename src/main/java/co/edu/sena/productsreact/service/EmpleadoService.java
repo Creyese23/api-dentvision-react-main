@@ -2,11 +2,14 @@ package co.edu.sena.productsreact.service;
 
 import co.edu.sena.productsreact.dto.empleado.EmpleadoRequest;
 import co.edu.sena.productsreact.dto.empleado.EmpleadoResponse;
+import co.edu.sena.productsreact.dto.usuario.UsuarioResponse;
 import co.edu.sena.productsreact.entity.Empleado;
 import co.edu.sena.productsreact.entity.PerfilUsuario;
 import co.edu.sena.productsreact.entity.User;
 import co.edu.sena.productsreact.exception.DuplicateResourceException;
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
+
+import java.util.Map;
 import co.edu.sena.productsreact.repository.EmpleadoRepository;
 import co.edu.sena.productsreact.repository.PerfilUsuarioRepository;
 import co.edu.sena.productsreact.repository.UserRepository;
@@ -46,6 +49,34 @@ public class EmpleadoService {
         Empleado e = empleadoRepository.findByUsuarioId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de empleado registrado"));
         return EmpleadoResponse.from(e);
+    }
+
+    private static final Map<String, String> ROL_CARGO = Map.of(
+            "ROLE_ODONTOLOGO", "ODONTOLOGO",
+            "ROLE_TECNICO", "TECNICO",
+            "ROLE_RECEPCIONISTA", "RECEPCIONISTA",
+            "ROLE_ADMIN", "ADMINISTRADOR"
+    );
+
+    public List<UsuarioResponse> listarPendientesActivacion() {
+        return userRepository.findEmpleadosSinActivar().stream()
+                .map(UsuarioResponse::from).toList();
+    }
+
+    @Transactional
+    public EmpleadoResponse activarEmpleado(Long idUsuario) {
+        User user = userRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario " + idUsuario + " no encontrado"));
+        if (empleadoRepository.existsByUsuarioId(idUsuario)) {
+            throw new DuplicateResourceException("El usuario ya tiene un perfil de empleado activo");
+        }
+        String cargo = ROL_CARGO.getOrDefault(user.getRol().getNombreRol(), "EMPLEADO");
+        Empleado e = Empleado.builder()
+                .usuario(user)
+                .cargo(cargo)
+                .estado(true)
+                .build();
+        return EmpleadoResponse.from(empleadoRepository.save(e));
     }
 
     @Transactional
