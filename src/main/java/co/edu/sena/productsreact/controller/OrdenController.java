@@ -20,31 +20,31 @@ public class OrdenController {
     private final OrdenService ordenService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<List<OrdenResponse>> porEstado(@RequestParam(defaultValue = "PENDIENTE") String estado) {
         return ResponseEntity.ok(ordenService.listarPorEstado(estado));
     }
 
     @GetMapping("/procedimiento/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<List<OrdenResponse>> porProcedimiento(@PathVariable Long id) {
         return ResponseEntity.ok(ordenService.listarPorProcedimiento(id));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<OrdenResponse> obtener(@PathVariable Long id) {
         return ResponseEntity.ok(ordenService.obtener(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<OrdenResponse> crear(@Valid @RequestBody OrdenRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ordenService.crear(request));
     }
 
     @PatchMapping("/{id}/estado")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<OrdenResponse> cambiarEstado(@PathVariable Long id, @RequestParam String estado) {
         return ResponseEntity.ok(ordenService.cambiarEstado(id, estado));
     }
