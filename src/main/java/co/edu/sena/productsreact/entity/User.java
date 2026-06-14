@@ -26,6 +26,9 @@ public class User {
     @Column(nullable = false, length = 100)
     private String password;
 
+    @Column(length = 20)
+    private String provider; // LOCAL, GOOGLE, GITHUB (null = LOCAL)
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean estado = true;

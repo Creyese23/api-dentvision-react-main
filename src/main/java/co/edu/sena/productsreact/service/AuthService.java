@@ -143,6 +143,39 @@ public class AuthService {
         return buildAuthResponse(user, perfil);
     }
 
+    @Transactional
+    public AuthResponse loginOrRegisterOAuth(String email, String provider, String nombre) {
+        User user = userRepository.findByEmail(email).orElseGet(() -> {
+            Rol rolPaciente = rolRepository.findByNombreRol("ROLE_PACIENTE")
+                    .orElseGet(() -> rolRepository.save(Rol.builder().nombreRol("ROLE_PACIENTE").build()));
+            User newUser = User.builder()
+                    .email(email)
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .rol(rolPaciente)
+                    .estado(true)
+                    .provider(provider)
+                    .build();
+            newUser = userRepository.save(newUser);
+
+            String[] parts = nombre.split(" ", 2);
+            PerfilUsuario perfil = PerfilUsuario.builder()
+                    .usuario(newUser)
+                    .nombres(parts[0])
+                    .apellidos(parts.length > 1 ? parts[1] : "")
+                    .tipoIdentificacion("").identificacion("")
+                    .telefono("").direccion("")
+                    .build();
+            perfilRepository.save(perfil);
+
+            pacienteRepository.save(Paciente.builder().usuario(newUser).estado(true).build());
+            return newUser;
+        });
+
+        PerfilUsuario perfil = perfilRepository.findById(user.getId()).orElse(null);
+        refreshTokenRepository.revokeAllByUsuarioId(user.getId());
+        return buildAuthResponse(user, perfil);
+    }
+
     private AuthResponse buildAuthResponse(User user, PerfilUsuario perfil) {
         UserDetails ud = org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
