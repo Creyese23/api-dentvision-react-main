@@ -18,6 +18,7 @@ import co.edu.sena.productsreact.repository.RolRepository;
 import co.edu.sena.productsreact.repository.UserRepository;
 import co.edu.sena.productsreact.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,6 +33,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -42,6 +44,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     @Value("${app.jwt.refresh-expiration-days:7}")
     private int refreshExpirationDays;
@@ -174,6 +177,38 @@ public class AuthService {
         PerfilUsuario perfil = perfilRepository.findById(user.getId()).orElse(null);
         refreshTokenRepository.revokeAllByUsuarioId(user.getId());
         return buildAuthResponse(user, perfil);
+    }
+
+    @Transactional
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No existe una cuenta con ese correo"));
+
+        String token = UUID.randomUUID().toString();
+        user.setResetToken(token);
+        user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
+
+        try {
+            emailService.sendPasswordResetEmail(email, token);
+        } catch (Exception e) {
+            log.warn("Email no enviado, token de recuperación para {}: {}", email, token);
+        }
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetToken(token)
+                .orElseThrow(() -> new ResourceNotFoundException("Token inválido o ya utilizado"));
+
+        if (user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("El enlace de recuperación ha expirado. Solicita uno nuevo.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        userRepository.save(user);
     }
 
     private AuthResponse buildAuthResponse(User user, PerfilUsuario perfil) {
