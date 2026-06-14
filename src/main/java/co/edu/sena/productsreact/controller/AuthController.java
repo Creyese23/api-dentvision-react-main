@@ -49,8 +49,16 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
-        authService.forgotPassword(body.get("email"));
-        return ResponseEntity.ok(Map.of("message", "Si el correo existe, recibirás un enlace para restablecer tu contraseña."));
+        String resetUrl = authService.forgotPassword(body.get("email"));
+        if (resetUrl != null) {
+            // Sin SMTP configurado — devolver enlace directo (modo demo)
+            return ResponseEntity.ok(Map.of(
+                "message", "No hay servidor de correo configurado. Usa este enlace para restablecer tu contraseña:",
+                "resetUrl", resetUrl,
+                "demo", true
+            ));
+        }
+        return ResponseEntity.ok(Map.of("message", "Te hemos enviado un enlace de recuperación a tu correo."));
     }
 
     @PostMapping("/reset-password")

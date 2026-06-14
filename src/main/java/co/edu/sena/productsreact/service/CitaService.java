@@ -6,8 +6,8 @@ import co.edu.sena.productsreact.dto.cita.CitaResponse;
 import co.edu.sena.productsreact.entity.Cita;
 import co.edu.sena.productsreact.entity.Empleado;
 import co.edu.sena.productsreact.entity.Paciente;
-import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 import co.edu.sena.productsreact.entity.User;
+import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 import co.edu.sena.productsreact.repository.CitaRepository;
 import co.edu.sena.productsreact.repository.EmpleadoRepository;
 import co.edu.sena.productsreact.repository.PacienteRepository;
@@ -16,13 +16,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@org.springframework.transaction.annotation.Transactional(readOnly = true)
+@Transactional(readOnly = true)
 public class CitaService {
+
+    private static final List<String> HORAS_LABORALES = List.of(
+            "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
+            "14:00","14:30","15:00","15:30","16:00","16:30","17:00"
+    );
 
     private final CitaRepository citaRepository;
     private final PacienteRepository pacienteRepository;
@@ -57,6 +63,20 @@ public class CitaService {
         return CitaResponse.from(getOrThrow(id));
     }
 
+    /** Horarios disponibles de un odontólogo para una fecha específica */
+    public List<String> horasDisponibles(Long odontologoId, LocalDate fecha) {
+        LocalDateTime inicio = fecha.atStartOfDay();
+        LocalDateTime fin    = fecha.atTime(23, 59, 59);
+
+        List<String> ocupadas = citaRepository.findByOdontologoAndRangoFecha(odontologoId, inicio, fin)
+                .stream()
+                .filter(c -> !"CANCELADA".equals(c.getEstado()))
+                .map(c -> c.getFechaHora().toLocalTime().toString().substring(0, 5))
+                .toList();
+
+        return HORAS_LABORALES.stream().filter(h -> !ocupadas.contains(h)).toList();
+    }
+
     @Transactional
     public CitaResponse agendarCita(String email, AgendarCitaRequest req) {
         User user = userRepository.findByEmail(email)
@@ -77,13 +97,60 @@ public class CitaService {
         return CitaResponse.from(citaRepository.save(cita));
     }
 
+    /** El paciente cancela su propia cita */
+    @Transactional
+    public CitaResponse cancelarPorPaciente(Long citaId, String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Paciente paciente = pacienteRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente no encontrado"));
+        Cita cita = getOrThrow(citaId);
+
+        if (!cita.getPaciente().getId().equals(paciente.getId()))
+            throw new IllegalArgumentException("No tienes permiso para cancelar esta cita");
+        if ("CANCELADA".equals(cita.getEstado()))
+            throw new IllegalArgumentException("La cita ya está cancelada");
+
+        cita.setEstado("CANCELADA");
+        cita.setFechaEliminacion(LocalDateTime.now());
+        return CitaResponse.from(citaRepository.save(cita));
+    }
+
+    /** El paciente reagenda su propia cita (cambia fecha/hora y/u odontólogo) */
+    @Transactional
+    public CitaResponse reagendarPorPaciente(Long citaId, String email, AgendarCitaRequest req) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Paciente paciente = pacienteRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente no encontrado"));
+        Cita cita = getOrThrow(citaId);
+
+        if (!cita.getPaciente().getId().equals(paciente.getId()))
+            throw new IllegalArgumentException("No tienes permiso para modificar esta cita");
+        if ("CANCELADA".equals(cita.getEstado()))
+            throw new IllegalArgumentException("No puedes reagendar una cita cancelada");
+
+        boolean ocupado = citaRepository.findByOdontologoIdAndFechaEliminacionIsNull(req.idOdontologo())
+                .stream().anyMatch(c -> !c.getId().equals(citaId)
+                        && c.getFechaHora().equals(req.fechaHora())
+                        && !"CANCELADA".equals(c.getEstado()));
+        if (ocupado) throw new IllegalArgumentException("El horario seleccionado ya está ocupado. Elige otro.");
+
+        Empleado odontologo = empleadoRepository.findById(req.idOdontologo())
+                .orElseThrow(() -> new ResourceNotFoundException("Odontólogo no encontrado"));
+
+        cita.setOdontologo(odontologo);
+        cita.setFechaHora(req.fechaHora());
+        if (req.motivo() != null) cita.setMotivo(req.motivo());
+        return CitaResponse.from(citaRepository.save(cita));
+    }
+
     @Transactional
     public CitaResponse crear(CitaRequest req) {
         Paciente paciente = pacienteRepository.findById(req.idPaciente())
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente " + req.idPaciente() + " no encontrado"));
         Empleado odontologo = empleadoRepository.findById(req.idOdontologo())
                 .orElseThrow(() -> new ResourceNotFoundException("Empleado " + req.idOdontologo() + " no encontrado"));
-
         Cita cita = Cita.builder()
                 .paciente(paciente).odontologo(odontologo)
                 .fechaHora(req.fechaHora()).motivo(req.motivo())

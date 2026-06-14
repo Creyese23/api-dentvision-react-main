@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,6 +28,32 @@ public class CitaController {
     @PreAuthorize("hasAuthority('ROLE_PACIENTE')")
     public ResponseEntity<List<CitaResponse>> misCitas(Authentication auth) {
         return ResponseEntity.ok(citaService.listarMisCitas(auth.getName()));
+    }
+
+    /** Horarios disponibles para un odontólogo en una fecha (accesible al paciente) */
+    @GetMapping("/disponibles")
+    @PreAuthorize("hasAnyAuthority('ROLE_PACIENTE','ROLE_ADMIN','ROLE_RECEPCIONISTA')")
+    public ResponseEntity<List<String>> disponibles(
+            @RequestParam Long odontologoId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        return ResponseEntity.ok(citaService.horasDisponibles(odontologoId, fecha));
+    }
+
+    /** Paciente cancela su propia cita */
+    @PatchMapping("/{id}/cancelar-paciente")
+    @PreAuthorize("hasAuthority('ROLE_PACIENTE')")
+    public ResponseEntity<CitaResponse> cancelarPaciente(@PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(citaService.cancelarPorPaciente(id, auth.getName()));
+    }
+
+    /** Paciente reagenda su propia cita */
+    @PutMapping("/{id}/reagendar")
+    @PreAuthorize("hasAuthority('ROLE_PACIENTE')")
+    public ResponseEntity<CitaResponse> reagendar(
+            @PathVariable Long id,
+            Authentication auth,
+            @Valid @RequestBody AgendarCitaRequest req) {
+        return ResponseEntity.ok(citaService.reagendarPorPaciente(id, auth.getName(), req));
     }
 
     @GetMapping("/paciente/{id}")
