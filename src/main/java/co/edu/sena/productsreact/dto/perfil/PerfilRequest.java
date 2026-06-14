@@ -1,5 +1,7 @@
 package co.edu.sena.productsreact.dto.perfil;
 
+import java.time.LocalDate;
+
 public record PerfilRequest(
         String nombres,
         String apellidos,
@@ -7,5 +9,6 @@ public record PerfilRequest(
         String identificacion,
         String telefono,
         String direccion,
-        String fotoPerfil
+        String fotoPerfil,
+        LocalDate fechaNacimiento
 ) {}

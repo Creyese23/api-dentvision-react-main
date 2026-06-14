@@ -3,9 +3,11 @@ package co.edu.sena.productsreact.service;
 import co.edu.sena.productsreact.dto.perfil.CambiarPasswordRequest;
 import co.edu.sena.productsreact.dto.perfil.PerfilRequest;
 import co.edu.sena.productsreact.dto.perfil.PerfilResponse;
+import co.edu.sena.productsreact.entity.Paciente;
 import co.edu.sena.productsreact.entity.PerfilUsuario;
 import co.edu.sena.productsreact.entity.User;
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
+import co.edu.sena.productsreact.repository.PacienteRepository;
 import co.edu.sena.productsreact.repository.PerfilUsuarioRepository;
 import co.edu.sena.productsreact.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,11 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@org.springframework.transaction.annotation.Transactional(readOnly = true)
+@Transactional(readOnly = true)
 public class PerfilService {
 
     private final UserRepository userRepository;
     private final PerfilUsuarioRepository perfilRepository;
+    private final PacienteRepository pacienteRepository;
     private final PasswordEncoder passwordEncoder;
 
     public PerfilResponse getMiPerfil(String email) {
@@ -27,6 +30,12 @@ public class PerfilService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         PerfilUsuario perfil = perfilRepository.findById(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado"));
+
+        boolean esPaciente = "ROLE_PACIENTE".equals(user.getRol().getNombreRol());
+        if (esPaciente) {
+            Paciente paciente = pacienteRepository.findByUsuarioId(user.getId()).orElse(null);
+            return PerfilResponse.from(user, perfil, paciente);
+        }
         return PerfilResponse.from(user, perfil);
     }
 
@@ -36,6 +45,7 @@ public class PerfilService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         PerfilUsuario perfil = perfilRepository.findById(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado"));
+
         if (req.nombres() != null) perfil.setNombres(req.nombres());
         if (req.apellidos() != null) perfil.setApellidos(req.apellidos());
         if (req.tipoIdentificacion() != null) perfil.setTipoIdentificacion(req.tipoIdentificacion());
@@ -44,6 +54,16 @@ public class PerfilService {
         if (req.direccion() != null) perfil.setDireccion(req.direccion());
         if (req.fotoPerfil() != null) perfil.setFotoPerfil(req.fotoPerfil());
         perfilRepository.save(perfil);
+
+        boolean esPaciente = "ROLE_PACIENTE".equals(user.getRol().getNombreRol());
+        if (esPaciente && req.fechaNacimiento() != null) {
+            Paciente paciente = pacienteRepository.findByUsuarioId(user.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Registro de paciente no encontrado"));
+            paciente.setFechaNacimiento(req.fechaNacimiento());
+            pacienteRepository.save(paciente);
+            return PerfilResponse.from(user, perfil, paciente);
+        }
+
         return PerfilResponse.from(user, perfil);
     }
 
