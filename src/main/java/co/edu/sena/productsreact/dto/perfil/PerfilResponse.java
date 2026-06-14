@@ -12,14 +12,16 @@ public record PerfilResponse(
         String tipoIdentificacion,
         String identificacion,
         String telefono,
-        String direccion
+        String direccion,
+        String fotoPerfil
 ) {
     public static PerfilResponse from(User user, PerfilUsuario p) {
         return new PerfilResponse(
                 user.getId(), user.getEmail(), user.getRol().getNombreRol(),
                 p.getNombres(), p.getApellidos(),
                 p.getTipoIdentificacion(), p.getIdentificacion(),
-                p.getTelefono(), p.getDireccion()
+                p.getTelefono(), p.getDireccion(),
+                p.getFotoPerfil()
         );
     }
 }

@@ -10,12 +10,14 @@ public record ServicioResponse(
         String descripcion,
         BigDecimal precio,
         Integer duracionMinutos,
-        Boolean estado
+        Boolean estado,
+        String imagenUrl
 ) {
     public static ServicioResponse from(Servicio s) {
         return new ServicioResponse(
                 s.getId(), s.getNombre(), s.getDescripcion(),
-                s.getPrecio(), s.getDuracionMinutos(), s.getEstado()
+                s.getPrecio(), s.getDuracionMinutos(), s.getEstado(),
+                s.getImagenUrl()
         );
     }
 }

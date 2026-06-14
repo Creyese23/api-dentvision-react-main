@@ -31,6 +31,9 @@ public class Servicio {
     @Column(name = "duracion_minutos")
     private Integer duracionMinutos;
 
+    @Column(name = "imagen_url", columnDefinition = "TEXT")
+    private String imagenUrl;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean estado = true;
