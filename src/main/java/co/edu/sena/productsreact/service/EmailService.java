@@ -24,6 +24,31 @@ public class EmailService {
         return frontendUrl + "/reset-password?token=" + token;
     }
 
+    public String buildVerificationUrl(String token) {
+        return frontendUrl + "/verify-email?token=" + token;
+    }
+
+    public void sendVerificationEmail(String toEmail, String token) {
+        if (fromEmail == null || fromEmail.isBlank()) {
+            throw new IllegalStateException("SMTP no configurado");
+        }
+        String link = buildVerificationUrl(token);
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("DentVision - Confirma tu cuenta");
+        message.setText(
+            "¡Bienvenido a DentVision!\n\n" +
+            "Tu cuenta ha sido creada exitosamente. Para confirmarla, haz clic en el enlace:\n\n" +
+            link + "\n\n" +
+            "Este enlace expirará en 24 horas.\n\n" +
+            "Si no creaste esta cuenta, ignora este mensaje.\n\n" +
+            "— Equipo DentVision"
+        );
+        mailSender.send(message);
+        log.info("Email de verificación enviado a {}", toEmail);
+    }
+
     public void sendPasswordResetEmail(String toEmail, String token) {
         if (fromEmail == null || fromEmail.isBlank()) {
             throw new IllegalStateException("SMTP no configurado");

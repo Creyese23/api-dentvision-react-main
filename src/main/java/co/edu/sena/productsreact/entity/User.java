@@ -40,6 +40,13 @@ public class User {
     @OneToOne(mappedBy = "usuario", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private PerfilUsuario perfil;
 
+    @Column(name = "email_verified")
+    @Builder.Default
+    private Boolean emailVerified = false;
+
+    @Column(name = "verification_token", length = 100)
+    private String verificationToken;
+
     @Column(name = "reset_token", length = 100)
     private String resetToken;
 
