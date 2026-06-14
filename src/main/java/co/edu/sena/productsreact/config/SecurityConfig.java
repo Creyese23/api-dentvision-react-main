@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -29,16 +30,22 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final ClientRegistrationRepository clientRegistrationRepository;
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
+
+    @Value("${app.oauth2.google.client-id:}")
+    private String googleClientId;
+
+    @Value("${app.oauth2.github.client-id:}")
+    private String githubClientId;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
-                // IF_REQUIRED permite crear sesión solo durante el flujo OAuth2
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
@@ -47,13 +54,23 @@ public class SecurityConfig {
                         .requestMatchers("/", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth -> oauth
-                        .successHandler(oAuth2SuccessHandler)
-                        .failureUrl(frontendUrl + "/login?error=oauth2")
-                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
+        // Solo habilitar oauth2Login si hay al menos un proveedor real configurado
+        boolean hasOAuth2 = isConfigured(googleClientId) || isConfigured(githubClientId);
+        if (hasOAuth2) {
+            http.oauth2Login(oauth -> oauth
+                    .clientRegistrationRepository(clientRegistrationRepository)
+                    .successHandler(oAuth2SuccessHandler)
+                    .failureUrl(frontendUrl + "/login?error=oauth2")
+            );
+        }
+
         return http.build();
+    }
+
+    private boolean isConfigured(String value) {
+        return value != null && !value.isBlank();
     }
 
     @Bean
