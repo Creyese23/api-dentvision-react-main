@@ -31,7 +31,7 @@ public class Servicio {
     @Column(name = "duracion_minutos")
     private Integer duracionMinutos;
 
-    @Column(name = "imagen_url", columnDefinition = "TEXT")
+    @Column(name = "imagen_url", columnDefinition = "LONGTEXT")
     private String imagenUrl;
 
     @Column(nullable = false)

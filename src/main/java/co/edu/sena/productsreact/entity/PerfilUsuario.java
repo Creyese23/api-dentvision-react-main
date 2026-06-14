@@ -35,6 +35,6 @@ public class PerfilUsuario {
     @Column(length = 200, columnDefinition = "VARCHAR(200) NULL DEFAULT ''")
     private String direccion;
 
-    @Column(name = "foto_perfil", columnDefinition = "TEXT")
+    @Column(name = "foto_perfil", columnDefinition = "LONGTEXT")
     private String fotoPerfil;
 }
