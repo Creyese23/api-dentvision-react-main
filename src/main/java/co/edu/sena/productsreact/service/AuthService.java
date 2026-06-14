@@ -179,8 +179,12 @@ public class AuthService {
         return buildAuthResponse(user, perfil);
     }
 
+    /**
+     * Genera token de reset. Devuelve la URL de reset si el email no pudo enviarse
+     * (modo demo / sin SMTP configurado), o null si el email se envió correctamente.
+     */
     @Transactional
-    public void forgotPassword(String email) {
+    public String forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("No existe una cuenta con ese correo"));
 
@@ -191,8 +195,10 @@ public class AuthService {
 
         try {
             emailService.sendPasswordResetEmail(email, token);
+            return null; // email enviado — no exponer URL en respuesta
         } catch (Exception e) {
-            log.warn("Email no enviado, token de recuperación para {}: {}", email, token);
+            log.warn("Email no enviado para {}. Devolviendo URL de reset en respuesta (modo demo).", email);
+            return emailService.buildResetUrl(token);
         }
     }
 
