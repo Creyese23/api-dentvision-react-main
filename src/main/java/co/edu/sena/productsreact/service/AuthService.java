@@ -49,8 +49,12 @@ public class AuthService {
     @Value("${app.jwt.refresh-expiration-days:7}")
     private int refreshExpirationDays;
 
+    /**
+     * Registra el usuario y envía correo de confirmación.
+     * Devuelve la URL de verificación si no hay SMTP configurado (modo demo).
+     */
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public RegisterResult register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException("El email '" + request.email() + "' ya está registrado");
         }
@@ -58,11 +62,15 @@ public class AuthService {
         Rol rolPaciente = rolRepository.findByNombreRol("ROLE_PACIENTE")
                 .orElseGet(() -> rolRepository.save(Rol.builder().nombreRol("ROLE_PACIENTE").build()));
 
+        String verificationToken = UUID.randomUUID().toString();
+
         User user = User.builder()
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .rol(rolPaciente)
                 .estado(true)
+                .emailVerified(false)
+                .verificationToken(verificationToken)
                 .build();
         user = userRepository.save(user);
 
@@ -82,7 +90,28 @@ public class AuthService {
                 .estado(true)
                 .build());
 
-        return buildAuthResponse(user, perfil);
+        AuthResponse authResponse = buildAuthResponse(user, perfil);
+
+        String demoVerifyUrl = null;
+        try {
+            emailService.sendVerificationEmail(request.email(), verificationToken);
+        } catch (Exception e) {
+            log.warn("Email de verificación no enviado para {}. Devolviendo URL en respuesta (modo demo).", request.email());
+            demoVerifyUrl = emailService.buildVerificationUrl(verificationToken);
+        }
+
+        return new RegisterResult(authResponse, demoVerifyUrl);
+    }
+
+    public record RegisterResult(AuthResponse authResponse, String demoVerifyUrl) {}
+
+    @Transactional
+    public void verifyEmail(String token) {
+        User user = userRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new ResourceNotFoundException("Token de verificación inválido o ya utilizado"));
+        user.setEmailVerified(true);
+        user.setVerificationToken(null);
+        userRepository.save(user);
     }
 
     @Transactional

@@ -33,8 +33,26 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        AuthService.RegisterResult result = authService.register(request);
+        if (result.demoVerifyUrl() != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "auth", result.authResponse(),
+                "verifyUrl", result.demoVerifyUrl(),
+                "demo", true,
+                "message", "Cuenta creada. No hay SMTP configurado — usa el enlace para verificar tu correo."
+            ));
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+            "auth", result.authResponse(),
+            "message", "Cuenta creada. Revisa tu correo para confirmar tu cuenta."
+        ));
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        authService.verifyEmail(token);
+        return ResponseEntity.ok(Map.of("message", "Correo verificado exitosamente. Ya puedes iniciar sesión."));
     }
 
     @PostMapping("/login")
