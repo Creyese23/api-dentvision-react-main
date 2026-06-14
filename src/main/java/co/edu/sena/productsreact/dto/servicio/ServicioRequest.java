@@ -10,5 +10,6 @@ public record ServicioRequest(
         @NotBlank String nombre,
         String descripcion,
         @NotNull @DecimalMin("0.0") BigDecimal precio,
-        Integer duracionMinutos
+        Integer duracionMinutos,
+        String imagenUrl
 ) {}

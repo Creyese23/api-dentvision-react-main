@@ -42,6 +42,7 @@ public class PerfilService {
         if (req.identificacion() != null) perfil.setIdentificacion(req.identificacion());
         if (req.telefono() != null) perfil.setTelefono(req.telefono());
         if (req.direccion() != null) perfil.setDireccion(req.direccion());
+        if (req.fotoPerfil() != null) perfil.setFotoPerfil(req.fotoPerfil());
         perfilRepository.save(perfil);
         return PerfilResponse.from(user, perfil);
     }

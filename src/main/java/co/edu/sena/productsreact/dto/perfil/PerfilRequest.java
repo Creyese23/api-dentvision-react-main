@@ -6,5 +6,6 @@ public record PerfilRequest(
         String tipoIdentificacion,
         String identificacion,
         String telefono,
-        String direccion
+        String direccion,
+        String fotoPerfil
 ) {}
