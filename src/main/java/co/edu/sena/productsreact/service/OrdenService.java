@@ -68,6 +68,13 @@ public class OrdenService {
         return OrdenResponse.from(ordenRepository.save(o));
     }
 
+    @Transactional
+    public OrdenResponse subirImagenDiagnostica(Long id, String imagen) {
+        Orden o = getOrThrow(id);
+        o.setImagenDiagnostica(imagen);
+        return OrdenResponse.from(ordenRepository.save(o));
+    }
+
     private Orden getOrThrow(Long id) {
         return ordenRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Orden " + id + " no encontrada"));

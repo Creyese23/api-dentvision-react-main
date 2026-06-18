@@ -24,6 +24,9 @@ public class Orden {
     @Column(columnDefinition = "TEXT")
     private String descripcion;
 
+    @Column(name = "imagen_diagnostica", columnDefinition = "LONGTEXT")
+    private String imagenDiagnostica;
+
     @Column(nullable = false, length = 30)
     @Builder.Default
     private String estado = "PENDIENTE";
