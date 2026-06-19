@@ -13,6 +13,7 @@ import java.util.Map;
 import co.edu.sena.productsreact.entity.Rol;
 import co.edu.sena.productsreact.repository.EmpleadoRepository;
 import co.edu.sena.productsreact.repository.PerfilUsuarioRepository;
+import co.edu.sena.productsreact.repository.RefreshTokenRepository;
 import co.edu.sena.productsreact.repository.RolRepository;
 import co.edu.sena.productsreact.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class EmpleadoService {
     private final UserRepository userRepository;
     private final PerfilUsuarioRepository perfilRepository;
     private final RolRepository rolRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     private static final Map<String, String> CARGO_ROL = Map.of(
             "ODONTOLOGO",    "ROLE_ODONTOLOGO",
@@ -44,10 +46,13 @@ public class EmpleadoService {
         String nombreRol = CARGO_ROL.get(cargo);
         if (nombreRol == null) return;
         if (usuario.getRol() != null && nombreRol.equals(usuario.getRol().getNombreRol())) return;
+        // Crear el rol si no existe aún en la tabla roles
         Rol rol = rolRepository.findByNombreRol(nombreRol)
-                .orElseThrow(() -> new ResourceNotFoundException("Rol '" + nombreRol + "' no encontrado"));
+                .orElseGet(() -> rolRepository.save(Rol.builder().nombreRol(nombreRol).build()));
         usuario.setRol(rol);
         userRepository.save(usuario);
+        // Revocar tokens activos para forzar re-login con el nuevo rol
+        refreshTokenRepository.revokeAllByUsuarioId(usuario.getId());
     }
 
     public List<EmpleadoResponse> listarActivos() {
