@@ -10,8 +10,10 @@ import co.edu.sena.productsreact.exception.DuplicateResourceException;
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 
 import java.util.Map;
+import co.edu.sena.productsreact.entity.Rol;
 import co.edu.sena.productsreact.repository.EmpleadoRepository;
 import co.edu.sena.productsreact.repository.PerfilUsuarioRepository;
+import co.edu.sena.productsreact.repository.RolRepository;
 import co.edu.sena.productsreact.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,25 @@ public class EmpleadoService {
     private final EmpleadoRepository empleadoRepository;
     private final UserRepository userRepository;
     private final PerfilUsuarioRepository perfilRepository;
+    private final RolRepository rolRepository;
+
+    private static final Map<String, String> CARGO_ROL = Map.of(
+            "ODONTOLOGO",    "ROLE_ODONTOLOGO",
+            "TECNICO",       "ROLE_TECNICO",
+            "RECEPCIONISTA", "ROLE_RECEPCIONISTA",
+            "ADMINISTRADOR", "ROLE_ADMIN",
+            "AUXILIAR",      "ROLE_TECNICO"
+    );
+
+    private void actualizarRolUsuario(User usuario, String cargo) {
+        String nombreRol = CARGO_ROL.get(cargo);
+        if (nombreRol == null) return;
+        if (usuario.getRol() != null && nombreRol.equals(usuario.getRol().getNombreRol())) return;
+        Rol rol = rolRepository.findByNombreRol(nombreRol)
+                .orElseThrow(() -> new ResourceNotFoundException("Rol '" + nombreRol + "' no encontrado"));
+        usuario.setRol(rol);
+        userRepository.save(usuario);
+    }
 
     public List<EmpleadoResponse> listarActivos() {
         return empleadoRepository.findByEstadoTrueAndFechaEliminacionIsNull().stream()
@@ -52,10 +73,10 @@ public class EmpleadoService {
     }
 
     private static final Map<String, String> ROL_CARGO = Map.of(
-            "ROLE_ODONTOLOGO", "ODONTOLOGO",
-            "ROLE_TECNICO", "TECNICO",
+            "ROLE_ODONTOLOGO",    "ODONTOLOGO",
+            "ROLE_TECNICO",       "TECNICO",
             "ROLE_RECEPCIONISTA", "RECEPCIONISTA",
-            "ROLE_ADMIN", "ADMINISTRADOR"
+            "ROLE_ADMIN",         "ADMINISTRADOR"
     );
 
     public List<UsuarioResponse> listarPendientesActivacion() {
@@ -106,6 +127,8 @@ public class EmpleadoService {
         perfil.setDireccion(req.direccion());
         perfilRepository.save(perfil);
 
+        actualizarRolUsuario(usuario, req.cargo());
+
         Empleado e = Empleado.builder()
                 .usuario(usuario)
                 .cargo(req.cargo())
@@ -120,6 +143,7 @@ public class EmpleadoService {
         e.setCargo(req.cargo());
 
         if (e.getUsuario() != null) {
+            actualizarRolUsuario(e.getUsuario(), req.cargo());
             PerfilUsuario perfil = e.getUsuario().getPerfil();
             if (perfil == null) {
                 perfil = new PerfilUsuario();
