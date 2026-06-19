@@ -48,4 +48,10 @@ public class OrdenController {
     public ResponseEntity<OrdenResponse> cambiarEstado(@PathVariable Long id, @RequestParam String estado) {
         return ResponseEntity.ok(ordenService.cambiarEstado(id, estado));
     }
+
+    @PatchMapping("/{id}/imagen")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    public ResponseEntity<OrdenResponse> subirImagen(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        return ResponseEntity.ok(ordenService.subirImagenDiagnostica(id, body.get("imagen")));
+    }
 }

@@ -9,12 +9,14 @@ public record OrdenResponse(
         Long idProcedimiento,
         String descripcion,
         String estado,
-        LocalDateTime fechaCreacion
+        LocalDateTime fechaCreacion,
+        String imagenDiagnostica
 ) {
     public static OrdenResponse from(Orden o) {
         return new OrdenResponse(
                 o.getId(), o.getProcedimiento().getId(),
-                o.getDescripcion(), o.getEstado(), o.getFechaCreacion()
+                o.getDescripcion(), o.getEstado(), o.getFechaCreacion(),
+                o.getImagenDiagnostica()
         );
     }
 }
