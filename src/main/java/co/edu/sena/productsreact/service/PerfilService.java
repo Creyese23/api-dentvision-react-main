@@ -24,6 +24,7 @@ public class PerfilService {
     private final PerfilUsuarioRepository perfilRepository;
     private final PacienteRepository pacienteRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     public PerfilResponse getMiPerfil(String email) {
         User user = userRepository.findByEmail(email)
@@ -76,5 +77,6 @@ public class PerfilService {
         }
         user.setPassword(passwordEncoder.encode(req.passwordNuevo()));
         userRepository.save(user);
+        emailService.sendPasswordChangedEmail(email);
     }
 }
