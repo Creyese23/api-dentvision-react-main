@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -35,6 +36,12 @@ public class UsuarioController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<UsuarioResponse> toggleEstado(@PathVariable Long id) {
         return ResponseEntity.ok(usuarioService.toggleEstado(id));
+    }
+
+    @PatchMapping("/{id}/rol")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<UsuarioResponse> cambiarRol(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(usuarioService.cambiarRol(id, body.get("rol")));
     }
 
     @PostMapping
