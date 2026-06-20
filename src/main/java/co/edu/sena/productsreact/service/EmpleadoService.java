@@ -171,6 +171,16 @@ public class EmpleadoService {
         e.setEstado(false);
         e.setFechaEliminacion(LocalDateTime.now());
         empleadoRepository.save(e);
+
+        // Revertir rol a ROLE_PACIENTE y forzar re-login
+        User usuario = e.getUsuario();
+        if (usuario != null) {
+            Rol rolPaciente = rolRepository.findByNombreRol("ROLE_PACIENTE")
+                    .orElseGet(() -> rolRepository.save(Rol.builder().nombreRol("ROLE_PACIENTE").build()));
+            usuario.setRol(rolPaciente);
+            userRepository.save(usuario);
+            refreshTokenRepository.revokeAllByUsuarioId(usuario.getId());
+        }
     }
 
     private Empleado getOrThrow(Long id) {
