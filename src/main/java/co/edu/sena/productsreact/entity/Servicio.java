@@ -6,7 +6,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,12 +23,6 @@ public class Servicio {
 
     @Column(columnDefinition = "TEXT")
     private String descripcion;
-
-    @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal precio;
-
-    @Column(name = "duracion_minutos")
-    private Integer duracionMinutos;
 
     @Column(name = "imagen_url", columnDefinition = "LONGTEXT")
     private String imagenUrl;

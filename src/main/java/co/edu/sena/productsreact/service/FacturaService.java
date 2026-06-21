@@ -24,6 +24,7 @@ public class FacturaService {
     private final PacienteRepository pacienteRepository;
     private final EmpleadoRepository empleadoRepository;
     private final ServicioRepository servicioRepository;
+    private final SubServicioRepository subServicioRepository;
 
     public List<FacturaResponse> listarPorPaciente(Long pacienteId) {
         return facturaRepository.findByPacienteIdAndFechaEliminacionIsNull(pacienteId)
@@ -57,7 +58,15 @@ public class FacturaService {
         Servicio servicio = servicioRepository.findById(req.idServicio())
                 .orElseThrow(() -> new ResourceNotFoundException("Servicio " + req.idServicio() + " no encontrado"));
 
-        BigDecimal precioUnitario = servicio.getPrecio();
+        BigDecimal precioUnitario = BigDecimal.ZERO;
+        if (req.idSubServicio() != null) {
+            SubServicio sub = subServicioRepository.findById(req.idSubServicio())
+                    .orElseThrow(() -> new ResourceNotFoundException("SubServicio " + req.idSubServicio() + " no encontrado"));
+            if (sub.getPrecio() != null) {
+                precioUnitario = sub.getPrecio();
+            }
+        }
+
         BigDecimal subtotal = precioUnitario.multiply(BigDecimal.valueOf(req.cantidad()));
 
         DetalleFactura detalle = DetalleFactura.builder()
