@@ -36,7 +36,7 @@ public class ProcedimientoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         Paciente paciente = pacienteRepository.findByUsuarioId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente no encontrado"));
-        return procedimientoRepository.findByCitaPacienteIdAndFechaEliminacionIsNull(paciente.getId())
+        return procedimientoRepository.findByCitaPacienteIdWithDetails(paciente.getId())
                 .stream().map(ProcedimientoResponse::from).toList();
     }
 
@@ -45,17 +45,19 @@ public class ProcedimientoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         Empleado tecnico = empleadoRepository.findByUsuarioId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado"));
-        return procedimientoRepository.findByTecnicoIdAndFechaEliminacionIsNull(tecnico.getId())
+        return procedimientoRepository.findByTecnicoIdWithDetails(tecnico.getId())
                 .stream().map(ProcedimientoResponse::from).toList();
     }
 
     public List<ProcedimientoResponse> listarPorCita(Long citaId) {
-        return procedimientoRepository.findByCitaIdAndFechaEliminacionIsNull(citaId)
+        return procedimientoRepository.findByCitaIdWithDetails(citaId)
                 .stream().map(ProcedimientoResponse::from).toList();
     }
 
     public ProcedimientoResponse obtener(Long id) {
-        return ProcedimientoResponse.from(getOrThrow(id));
+        Procedimiento p = procedimientoRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Procedimiento " + id + " no encontrado"));
+        return ProcedimientoResponse.from(p);
     }
 
     @Transactional
