@@ -13,17 +13,22 @@ import co.edu.sena.productsreact.repository.EmpleadoRepository;
 import co.edu.sena.productsreact.repository.PacienteRepository;
 import co.edu.sena.productsreact.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class CitaService {
+
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private static final List<String> HORAS_LABORALES = List.of(
             "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
@@ -34,6 +39,7 @@ public class CitaService {
     private final PacienteRepository pacienteRepository;
     private final EmpleadoRepository empleadoRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     public List<CitaResponse> listarMisCitas(String email) {
         User user = userRepository.findByEmail(email)
@@ -94,7 +100,18 @@ public class CitaService {
                 .paciente(paciente).odontologo(odontologo)
                 .fechaHora(req.fechaHora()).motivo(req.motivo())
                 .estado("PROGRAMADA").build();
-        return CitaResponse.from(citaRepository.save(cita));
+        CitaResponse resp = CitaResponse.from(citaRepository.save(cita));
+        try {
+            String nombrePaciente = paciente.getUsuario().getPerfil().getNombres();
+            String nombreOdontologo = odontologo.getUsuario().getPerfil().getNombres()
+                + " " + odontologo.getUsuario().getPerfil().getApellidos();
+            emailService.sendCitaConfirmada(
+                email, nombrePaciente, req.motivo(),
+                req.fechaHora().format(FMT), nombreOdontologo);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar email de confirmación de cita: {}", e.getMessage());
+        }
+        return resp;
     }
 
     /** El paciente cancela su propia cita */
@@ -113,7 +130,16 @@ public class CitaService {
 
         cita.setEstado("CANCELADA");
         cita.setFechaEliminacion(LocalDateTime.now());
-        return CitaResponse.from(citaRepository.save(cita));
+        CitaResponse resp = CitaResponse.from(citaRepository.save(cita));
+        try {
+            String nombrePaciente = paciente.getUsuario().getPerfil().getNombres();
+            emailService.sendCitaCancelada(
+                email, nombrePaciente, cita.getMotivo(),
+                cita.getFechaHora().format(FMT));
+        } catch (Exception e) {
+            log.warn("No se pudo enviar email de cancelación: {}", e.getMessage());
+        }
+        return resp;
     }
 
     /** El paciente reagenda su propia cita (cambia fecha/hora y/u odontólogo) */
@@ -185,6 +211,15 @@ public class CitaService {
         cita.setFechaEliminacion(LocalDateTime.now());
         cita.setEstado("CANCELADA");
         citaRepository.save(cita);
+        try {
+            String email = cita.getPaciente().getUsuario().getEmail();
+            String nombrePaciente = cita.getPaciente().getUsuario().getPerfil().getNombres();
+            emailService.sendCitaCancelada(
+                email, nombrePaciente, cita.getMotivo(),
+                cita.getFechaHora().format(FMT));
+        } catch (Exception e) {
+            log.warn("No se pudo enviar email de cancelación (admin): {}", e.getMessage());
+        }
     }
 
     private Cita getOrThrow(Long id) {

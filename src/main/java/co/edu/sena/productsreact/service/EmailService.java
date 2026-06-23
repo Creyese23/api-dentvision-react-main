@@ -30,9 +30,15 @@ public class EmailService {
     @Value("${RESEND_FROM:onboarding@resend.dev}")
     private String resendFrom;
 
-    // SMTP (Gmail u otro)
+    // SMTP — credenciales Brevo
     @Value("${spring.mail.username:}")
     private String smtpUsername;
+
+    @Value("${app.mail.from:afb680001@smtp-brevo.com}")
+    private String mailFrom;
+
+    @Value("${app.mail.from-name:DentVision}")
+    private String mailFromName;
 
     // ── estado ──────────────────────────────────────────────────────────────
 
@@ -41,7 +47,7 @@ public class EmailService {
     }
 
     public boolean isSmtpConfigured() {
-        return mailSender != null && smtpUsername != null && !smtpUsername.isBlank();
+        return mailSender != null;
     }
 
     public boolean canSendEmail() {
@@ -88,6 +94,88 @@ public class EmailService {
                 "Este enlace expirará en 1 hora. Si no solicitaste este cambio, puedes ignorar este correo."
             ));
         log.info("Email de recuperación enviado a {}", toEmail);
+    }
+
+    // ── Notificaciones de citas ───────────────────────────────────────────────
+
+    public void sendCitaConfirmada(String toEmail, String nombrePaciente,
+                                   String motivo, String fechaHora, String odontologo) {
+        if (!canSendEmail()) { log.warn("Email no configurado — notificación de cita no enviada"); return; }
+        send(toEmail,
+            "DentVision — Tu cita fue confirmada ✅",
+            buildHtml(
+                "Tu cita fue confirmada en DentVision",
+                "¡Cita confirmada!",
+                String.format("Hola %s, tu cita en DentVision ha sido <strong>confirmada</strong>.<br><br>"
+                    + "<b>📋 Motivo:</b> %s<br>"
+                    + "<b>📅 Fecha y hora:</b> %s<br>"
+                    + "<b>👨‍⚕️ Odontólogo:</b> %s<br><br>"
+                    + "Por favor llega 10 minutos antes de tu cita.",
+                    nombrePaciente, motivo, fechaHora, odontologo),
+                frontendUrl + "/paciente/citas", "Ver mis citas",
+                "Si necesitas reagendar o cancelar, hazlo desde tu panel de paciente con al menos 24 horas de anticipación."
+            ));
+        log.info("Confirmación de cita enviada a {}", toEmail);
+    }
+
+    public void sendCitaCancelada(String toEmail, String nombrePaciente,
+                                   String motivo, String fechaHora) {
+        if (!canSendEmail()) { log.warn("Email no configurado — notificación de cancelación no enviada"); return; }
+        send(toEmail,
+            "DentVision — Tu cita fue cancelada",
+            buildHtml(
+                "Cancelación de cita en DentVision",
+                "Cita cancelada",
+                String.format("Hola %s, te informamos que tu cita en DentVision ha sido <strong>cancelada</strong>.<br><br>"
+                    + "<b>📋 Motivo:</b> %s<br>"
+                    + "<b>📅 Fecha y hora:</b> %s<br><br>"
+                    + "Puedes agendar una nueva cita cuando lo necesites.",
+                    nombrePaciente, motivo, fechaHora),
+                frontendUrl + "/paciente/citas", "Agendar nueva cita",
+                "Si crees que esto es un error, contáctanos respondiendo este correo."
+            ));
+        log.info("Notificación de cancelación enviada a {}", toEmail);
+    }
+
+    public void sendCitaRecordatorio(String toEmail, String nombrePaciente,
+                                      String motivo, String fechaHora, String odontologo) {
+        if (!canSendEmail()) { log.warn("Email no configurado — recordatorio no enviado"); return; }
+        send(toEmail,
+            "DentVision — Recordatorio de cita 📅",
+            buildHtml(
+                "Tienes una cita mañana en DentVision",
+                "Recordatorio de cita",
+                String.format("Hola %s, te recordamos que <strong>mañana tienes una cita</strong> en DentVision.<br><br>"
+                    + "<b>📋 Motivo:</b> %s<br>"
+                    + "<b>📅 Fecha y hora:</b> %s<br>"
+                    + "<b>👨‍⚕️ Odontólogo:</b> %s<br><br>"
+                    + "Recuerda traer tu documento de identidad.",
+                    nombrePaciente, motivo, fechaHora, odontologo),
+                frontendUrl + "/paciente/citas", "Ver detalles",
+                "Para reagendar o cancelar hazlo con al menos 24 horas de anticipación."
+            ));
+        log.info("Recordatorio de cita enviado a {}", toEmail);
+    }
+
+    // ── Notificaciones de factura ─────────────────────────────────────────────
+
+    public void sendFacturaGenerada(String toEmail, String nombrePaciente,
+                                     Long facturaId, String total) {
+        if (!canSendEmail()) { log.warn("Email no configurado — notificación de factura no enviada"); return; }
+        send(toEmail,
+            "DentVision — Nueva factura disponible 🧾",
+            buildHtml(
+                "Tienes una nueva factura en DentVision",
+                "Factura generada",
+                String.format("Hola %s, se ha generado una nueva factura por tus servicios en DentVision.<br><br>"
+                    + "<b>📄 Factura #:</b> %s<br>"
+                    + "<b>💰 Total:</b> %s COP<br><br>"
+                    + "Puedes ver el detalle y realizar el pago desde tu panel.",
+                    nombrePaciente, String.valueOf(facturaId).formatted("%06d", facturaId), total),
+                frontendUrl + "/paciente/facturas", "Ver y pagar factura",
+                "Si tienes preguntas sobre esta factura, contáctanos."
+            ));
+        log.info("Notificación de factura enviada a {}", toEmail);
     }
 
     public void sendPasswordChangedEmail(String toEmail) {
@@ -148,7 +236,7 @@ public class EmailService {
         try {
             var msg = mailSender.createMimeMessage();
             var helper = new MimeMessageHelper(msg, false, "UTF-8");
-            helper.setFrom(smtpUsername, "DentVision");
+            helper.setFrom(mailFrom, mailFromName);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(html, true);

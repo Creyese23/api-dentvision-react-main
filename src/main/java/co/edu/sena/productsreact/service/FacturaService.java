@@ -7,16 +7,20 @@ import co.edu.sena.productsreact.entity.*;
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 import co.edu.sena.productsreact.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 @org.springframework.transaction.annotation.Transactional(readOnly = true)
+@Slf4j
 public class FacturaService {
 
     private final FacturaRepository facturaRepository;
@@ -27,6 +31,7 @@ public class FacturaService {
     private final SubServicioRepository subServicioRepository;
     private final CitaRepository citaRepository;
     private final ProcedimientoRepository procedimientoRepository;
+    private final EmailService emailService;
 
     public List<FacturaResponse> listarPorPaciente(Long pacienteId) {
         return facturaRepository.findByPacienteIdAndFechaEliminacionIsNull(pacienteId)
@@ -114,7 +119,17 @@ public class FacturaService {
                 .estado("PENDIENTE")
                 .build();
 
-        return FacturaResponse.from(facturaRepository.save(factura));
+        FacturaResponse resp = FacturaResponse.from(facturaRepository.save(factura));
+        try {
+            String email = cita.getPaciente().getUsuario().getEmail();
+            String nombre = cita.getPaciente().getUsuario().getPerfil().getNombres();
+            String totalStr = NumberFormat.getNumberInstance(new Locale("es", "CO"))
+                .format(total);
+            emailService.sendFacturaGenerada(email, nombre, resp.id(), totalStr);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar email de factura: {}", e.getMessage());
+        }
+        return resp;
     }
 
     @Transactional
