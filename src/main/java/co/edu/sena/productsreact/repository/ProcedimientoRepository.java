@@ -12,16 +12,16 @@ import java.util.Optional;
 @Repository
 public interface ProcedimientoRepository extends JpaRepository<Procedimiento, Long> {
 
-    @Query("SELECT p FROM Procedimiento p LEFT JOIN FETCH p.cita LEFT JOIN FETCH p.tecnico t LEFT JOIN FETCH t.usuario u LEFT JOIN FETCH u.perfil WHERE p.id = :id AND p.fechaEliminacion IS NULL")
+    @Query("SELECT p FROM Procedimiento p LEFT JOIN FETCH p.cita c LEFT JOIN FETCH c.odontologo od LEFT JOIN FETCH od.usuario ou LEFT JOIN FETCH ou.perfil LEFT JOIN FETCH p.tecnico t LEFT JOIN FETCH t.usuario u LEFT JOIN FETCH u.perfil WHERE p.id = :id AND p.fechaEliminacion IS NULL")
     Optional<Procedimiento> findByIdWithDetails(@Param("id") Long id);
 
-    @Query("SELECT p FROM Procedimiento p LEFT JOIN FETCH p.cita LEFT JOIN FETCH p.tecnico t LEFT JOIN FETCH t.usuario u LEFT JOIN FETCH u.perfil WHERE p.cita.id = :citaId AND p.fechaEliminacion IS NULL")
+    @Query("SELECT p FROM Procedimiento p LEFT JOIN FETCH p.cita c LEFT JOIN FETCH c.odontologo od LEFT JOIN FETCH od.usuario ou LEFT JOIN FETCH ou.perfil LEFT JOIN FETCH p.tecnico t LEFT JOIN FETCH t.usuario u LEFT JOIN FETCH u.perfil WHERE c.id = :citaId AND p.fechaEliminacion IS NULL")
     List<Procedimiento> findByCitaIdWithDetails(@Param("citaId") Long citaId);
 
-    @Query("SELECT p FROM Procedimiento p LEFT JOIN FETCH p.cita LEFT JOIN FETCH p.tecnico t LEFT JOIN FETCH t.usuario u LEFT JOIN FETCH u.perfil WHERE t.id = :tecnicoId AND p.fechaEliminacion IS NULL")
+    @Query("SELECT p FROM Procedimiento p LEFT JOIN FETCH p.cita c LEFT JOIN FETCH c.odontologo od LEFT JOIN FETCH od.usuario ou LEFT JOIN FETCH ou.perfil LEFT JOIN FETCH p.tecnico t LEFT JOIN FETCH t.usuario u LEFT JOIN FETCH u.perfil WHERE t.id = :tecnicoId AND p.fechaEliminacion IS NULL")
     List<Procedimiento> findByTecnicoIdWithDetails(@Param("tecnicoId") Long tecnicoId);
 
-    @Query("SELECT p FROM Procedimiento p LEFT JOIN FETCH p.cita c LEFT JOIN FETCH c.paciente LEFT JOIN FETCH p.tecnico t LEFT JOIN FETCH t.usuario u LEFT JOIN FETCH u.perfil WHERE c.paciente.id = :pacienteId AND p.fechaEliminacion IS NULL")
+    @Query("SELECT p FROM Procedimiento p LEFT JOIN FETCH p.cita c LEFT JOIN FETCH c.paciente LEFT JOIN FETCH c.odontologo od LEFT JOIN FETCH od.usuario ou LEFT JOIN FETCH ou.perfil LEFT JOIN FETCH p.tecnico t LEFT JOIN FETCH t.usuario u LEFT JOIN FETCH u.perfil WHERE c.paciente.id = :pacienteId AND p.fechaEliminacion IS NULL")
     List<Procedimiento> findByCitaPacienteIdWithDetails(@Param("pacienteId") Long pacienteId);
 
     List<Procedimiento> findByCitaIdAndFechaEliminacionIsNull(Long citaId);

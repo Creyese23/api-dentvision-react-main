@@ -12,6 +12,7 @@ public record ProcedimientoResponse(
         Long idCita,
         Long idTecnico,
         String nombreTecnico,
+        String nombreOdontologo,
         String nombre,
         String descripcion,
         BigDecimal costo,
@@ -21,10 +22,12 @@ public record ProcedimientoResponse(
         String observaciones
 ) {
     public static ProcedimientoResponse from(Procedimiento p) {
+        Empleado odontologo = p.getCita() != null ? p.getCita().getOdontologo() : null;
         return new ProcedimientoResponse(
                 p.getId(), p.getCita().getId(),
                 p.getTecnico() != null ? p.getTecnico().getId() : null,
                 p.getTecnico() != null ? nombreCompletoEmpleado(p.getTecnico()) : null,
+                odontologo != null ? nombreCompletoEmpleado(odontologo) : null,
                 p.getNombre(), p.getDescripcion(),
                 p.getCosto(), p.getEstado(),
                 p.getFechaInicio(), p.getFechaFin(), p.getObservaciones()
