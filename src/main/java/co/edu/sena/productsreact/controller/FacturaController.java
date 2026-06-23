@@ -50,6 +50,12 @@ public class FacturaController {
         return ResponseEntity.ok(facturaService.cambiarEstado(id, estado));
     }
 
+    @PostMapping("/desde-cita/{citaId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA')")
+    public ResponseEntity<FacturaResponse> crearDesdeCita(@PathVariable Long citaId) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(facturaService.crearDesdeCita(citaId));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {

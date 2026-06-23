@@ -14,6 +14,7 @@ import co.edu.sena.productsreact.repository.PacienteRepository;
 import co.edu.sena.productsreact.repository.ProcedimientoRepository;
 import co.edu.sena.productsreact.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,7 @@ public class ProcedimientoService {
     private final EmpleadoRepository empleadoRepository;
     private final UserRepository userRepository;
     private final PacienteRepository pacienteRepository;
+    @Lazy private final FacturaService facturaService;
 
     public List<ProcedimientoResponse> listarMiHistorial(String email) {
         User user = userRepository.findByEmail(email)
@@ -106,7 +108,19 @@ public class ProcedimientoService {
         if ("COMPLETADO".equals(estado) && p.getFechaFin() == null) {
             p.setFechaFin(LocalDateTime.now());
         }
-        return ProcedimientoResponse.from(procedimientoRepository.save(p));
+        ProcedimientoResponse resultado = ProcedimientoResponse.from(procedimientoRepository.save(p));
+
+        // Auto-generar factura cuando todos los procedimientos de la cita están COMPLETADO
+        if ("COMPLETADO".equals(estado)) {
+            Long citaId = p.getCita().getId();
+            List<Procedimiento> todos = procedimientoRepository.findByCitaIdAndFechaEliminacionIsNull(citaId);
+            boolean todosCompletos = !todos.isEmpty() && todos.stream().allMatch(pr -> "COMPLETADO".equals(pr.getEstado()));
+            if (todosCompletos) {
+                facturaService.crearDesdeCita(citaId);
+            }
+        }
+
+        return resultado;
     }
 
     @Transactional

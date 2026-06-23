@@ -25,6 +25,8 @@ public class FacturaService {
     private final EmpleadoRepository empleadoRepository;
     private final ServicioRepository servicioRepository;
     private final SubServicioRepository subServicioRepository;
+    private final CitaRepository citaRepository;
+    private final ProcedimientoRepository procedimientoRepository;
 
     public List<FacturaResponse> listarPorPaciente(Long pacienteId) {
         return facturaRepository.findByPacienteIdAndFechaEliminacionIsNull(pacienteId)
@@ -86,6 +88,33 @@ public class FacturaService {
         Factura f = getOrThrow(id);
         f.setEstado(estado);
         return FacturaResponse.from(facturaRepository.save(f));
+    }
+
+    @Transactional
+    public FacturaResponse crearDesdeCita(Long citaId) {
+        Cita cita = citaRepository.findById(citaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cita " + citaId + " no encontrada"));
+
+        List<Procedimiento> completados = procedimientoRepository
+                .findByCitaIdAndFechaEliminacionIsNull(citaId)
+                .stream()
+                .filter(p -> "COMPLETADO".equals(p.getEstado()))
+                .toList();
+
+        BigDecimal total = completados.stream()
+                .filter(p -> p.getCosto() != null)
+                .map(Procedimiento::getCosto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Factura factura = Factura.builder()
+                .paciente(cita.getPaciente())
+                .odontologo(cita.getOdontologo())
+                .fechaEmision(LocalDateTime.now())
+                .total(total)
+                .estado("PENDIENTE")
+                .build();
+
+        return FacturaResponse.from(facturaRepository.save(factura));
     }
 
     @Transactional
