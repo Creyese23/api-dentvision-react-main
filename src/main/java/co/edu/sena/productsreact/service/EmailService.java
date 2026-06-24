@@ -49,8 +49,8 @@ public class EmailService {
 
     @PostConstruct
     public void logSmtpStatus() {
-        log.info("[EmailService] mailSender={} | fromEmail='{}' | smtpOk={}",
-            mailSender != null ? "OK" : "NULL", fromEmail, isSmtpConfigured());
+        log.info("[EmailService] resend={} | mailSender={} | smtpUsername='{}' | mailFrom='{}' | canSend={}",
+            isResendConfigured(), mailSender != null ? "OK" : "NULL", smtpUsername, mailFrom, canSendEmail());
     }
 
     public boolean isSmtpConfigured() {
