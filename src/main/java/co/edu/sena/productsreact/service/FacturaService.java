@@ -7,16 +7,20 @@ import co.edu.sena.productsreact.entity.*;
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 import co.edu.sena.productsreact.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 @org.springframework.transaction.annotation.Transactional(readOnly = true)
+@Slf4j
 public class FacturaService {
 
     private final FacturaRepository facturaRepository;
@@ -25,6 +29,9 @@ public class FacturaService {
     private final EmpleadoRepository empleadoRepository;
     private final ServicioRepository servicioRepository;
     private final SubServicioRepository subServicioRepository;
+    private final CitaRepository citaRepository;
+    private final ProcedimientoRepository procedimientoRepository;
+    private final EmailService emailService;
 
     public List<FacturaResponse> listarPorPaciente(Long pacienteId) {
         return facturaRepository.findByPacienteIdAndFechaEliminacionIsNull(pacienteId)
@@ -86,6 +93,64 @@ public class FacturaService {
         Factura f = getOrThrow(id);
         f.setEstado(estado);
         return FacturaResponse.from(facturaRepository.save(f));
+    }
+
+    @Transactional
+    public FacturaResponse crearDesdeCita(Long citaId) {
+        Cita cita = citaRepository.findById(citaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cita " + citaId + " no encontrada"));
+
+        List<Procedimiento> completados = procedimientoRepository
+                .findByCitaIdAndFechaEliminacionIsNull(citaId)
+                .stream()
+                .filter(p -> "COMPLETADO".equals(p.getEstado()))
+                .toList();
+
+        BigDecimal total = completados.stream()
+                .filter(p -> p.getCosto() != null)
+                .map(Procedimiento::getCosto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Factura factura = Factura.builder()
+                .paciente(cita.getPaciente())
+                .odontologo(cita.getOdontologo())
+                .fechaEmision(LocalDateTime.now())
+                .total(total)
+                .estado("PENDIENTE")
+                .build();
+        factura = facturaRepository.save(factura);
+
+        // Crear un DetalleFactura por cada procedimiento completado
+        Servicio servicioGeneral = servicioRepository.findFirstByNombre("Odontología General")
+                .orElseGet(() -> servicioRepository.save(Servicio.builder()
+                        .nombre("Odontología General")
+                        .descripcion("Procedimientos odontológicos generales")
+                        .estado(true).build()));
+
+        final Factura facturaFinal = factura;
+        completados.stream().filter(p -> p.getCosto() != null).forEach(p -> {
+            BigDecimal costo = p.getCosto();
+            detalleRepository.save(DetalleFactura.builder()
+                    .factura(facturaFinal)
+                    .servicio(servicioGeneral)
+                    .concepto(p.getNombre())
+                    .cantidad(1)
+                    .precioUnitario(costo)
+                    .subtotal(costo)
+                    .build());
+        });
+
+        FacturaResponse resp = FacturaResponse.from(facturaFinal);
+        try {
+            String email = cita.getPaciente().getUsuario().getEmail();
+            String nombre = cita.getPaciente().getUsuario().getPerfil().getNombres();
+            String totalStr = NumberFormat.getNumberInstance(new Locale("es", "CO"))
+                .format(total);
+            emailService.sendFacturaGenerada(email, nombre, resp.id(), totalStr);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar email de factura: {}", e.getMessage());
+        }
+        return resp;
     }
 
     @Transactional
