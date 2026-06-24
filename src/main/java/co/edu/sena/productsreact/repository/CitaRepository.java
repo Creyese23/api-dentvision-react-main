@@ -20,4 +20,7 @@ public interface CitaRepository extends JpaRepository<Cita, Long> {
 
     @Query("SELECT c FROM Cita c WHERE c.fechaEliminacion IS NULL AND c.odontologo.id = :odontologoId AND c.fechaHora BETWEEN :inicio AND :fin")
     List<Cita> findByOdontologoAndRangoFecha(Long odontologoId, LocalDateTime inicio, LocalDateTime fin);
+
+    @Query("SELECT c FROM Cita c WHERE c.fechaEliminacion IS NULL AND c.estado = 'PROGRAMADA' AND c.fechaHora < :ahora")
+    List<Cita> findProgramadasVencidas(LocalDateTime ahora);
 }
