@@ -6,6 +6,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,6 +27,10 @@ public class Servicio {
 
     @Column(name = "imagen_url", columnDefinition = "LONGTEXT")
     private String imagenUrl;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal precio = BigDecimal.ZERO;
 
     @Column(nullable = false)
     @Builder.Default

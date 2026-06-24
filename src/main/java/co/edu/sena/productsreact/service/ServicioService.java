@@ -35,6 +35,7 @@ public class ServicioService {
         }
         Servicio s = Servicio.builder()
                 .nombre(req.nombre()).descripcion(req.descripcion())
+                .precio(req.precio() != null ? req.precio() : java.math.BigDecimal.ZERO)
                 .imagenUrl(req.imagenUrl())
                 .estado(true).build();
         return ServicioResponse.from(servicioRepository.save(s));
@@ -45,6 +46,7 @@ public class ServicioService {
         Servicio s = getOrThrow(id);
         s.setNombre(req.nombre());
         s.setDescripcion(req.descripcion());
+        if (req.precio() != null) s.setPrecio(req.precio());
         if (req.imagenUrl() != null) s.setImagenUrl(req.imagenUrl());
         return ServicioResponse.from(servicioRepository.save(s));
     }
