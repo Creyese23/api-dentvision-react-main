@@ -5,5 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 public record ServicioRequest(
         @NotBlank String nombre,
         String descripcion,
-        String imagenUrl
+        String imagenUrl,
+        java.math.BigDecimal precio
 ) {}
