@@ -226,7 +226,7 @@ public class AuthService {
             emailService.sendPasswordResetEmail(email, token);
             return null; // email enviado — no exponer URL en respuesta
         } catch (Exception e) {
-            log.warn("Email no enviado para {}. Devolviendo URL de reset en respuesta (modo demo).", email);
+            log.error("[AuthService] Error enviando email de reset a {}: {} — {}", email, e.getClass().getSimpleName(), e.getMessage());
             return emailService.buildResetUrl(token);
         }
     }
