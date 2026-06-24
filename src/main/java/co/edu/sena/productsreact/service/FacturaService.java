@@ -118,8 +118,29 @@ public class FacturaService {
                 .total(total)
                 .estado("PENDIENTE")
                 .build();
+        factura = facturaRepository.save(factura);
 
-        FacturaResponse resp = FacturaResponse.from(facturaRepository.save(factura));
+        // Crear un DetalleFactura por cada procedimiento completado
+        Servicio servicioGeneral = servicioRepository.findFirstByNombre("Odontología General")
+                .orElseGet(() -> servicioRepository.save(Servicio.builder()
+                        .nombre("Odontología General")
+                        .descripcion("Procedimientos odontológicos generales")
+                        .estado(true).build()));
+
+        final Factura facturaFinal = factura;
+        completados.stream().filter(p -> p.getCosto() != null).forEach(p -> {
+            BigDecimal costo = p.getCosto();
+            detalleRepository.save(DetalleFactura.builder()
+                    .factura(facturaFinal)
+                    .servicio(servicioGeneral)
+                    .concepto(p.getNombre())
+                    .cantidad(1)
+                    .precioUnitario(costo)
+                    .subtotal(costo)
+                    .build());
+        });
+
+        FacturaResponse resp = FacturaResponse.from(facturaFinal);
         try {
             String email = cita.getPaciente().getUsuario().getEmail();
             String nombre = cita.getPaciente().getUsuario().getPerfil().getNombres();

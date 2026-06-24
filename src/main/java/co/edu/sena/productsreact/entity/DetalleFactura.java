@@ -22,6 +22,9 @@ public class DetalleFactura {
     @JoinColumn(name = "id_servicio", nullable = false)
     private Servicio servicio;
 
+    @Column(length = 300)
+    private String concepto;
+
     @Column(nullable = false)
     private Integer cantidad;
 

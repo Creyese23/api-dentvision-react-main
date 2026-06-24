@@ -10,4 +10,5 @@ import java.util.List;
 public interface ServicioRepository extends JpaRepository<Servicio, Long> {
     List<Servicio> findByEstadoTrue();
     boolean existsByNombre(String nombre);
+    java.util.Optional<Servicio> findFirstByNombre(String nombre);
 }
