@@ -1,5 +1,6 @@
 package co.edu.sena.productsreact.service;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +45,12 @@ public class EmailService {
 
     public boolean isResendConfigured() {
         return resendApiKey != null && !resendApiKey.isBlank();
+    }
+
+    @PostConstruct
+    public void logSmtpStatus() {
+        log.info("[EmailService] mailSender={} | fromEmail='{}' | smtpOk={}",
+            mailSender != null ? "OK" : "NULL", fromEmail, isSmtpConfigured());
     }
 
     public boolean isSmtpConfigured() {
