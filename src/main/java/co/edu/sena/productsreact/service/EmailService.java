@@ -368,12 +368,16 @@ public class EmailService {
     }
 
     private String extractJson(String json, String key) {
-        String search = "\"" + key + "\":\"";
-        int start = json.indexOf(search);
-        if (start < 0) return null;
-        start += search.length();
-        int end = json.indexOf("\"", start);
-        return end < 0 ? null : json.substring(start, end);
+        // Acepta "key":"value" y "key": "value" (JSON con o sin espacio)
+        for (String search : new String[]{"\"" + key + "\":\"", "\"" + key + "\": \""}) {
+            int start = json.indexOf(search);
+            if (start >= 0) {
+                start += search.length();
+                int end = json.indexOf("\"", start);
+                if (end >= 0) return json.substring(start, end);
+            }
+        }
+        return null;
     }
 
     private void sendViaSmtp(String to, String subject, String html) {
