@@ -322,12 +322,14 @@ public class EmailService {
             HttpResponse<String> tokenResp = HttpClient.newHttpClient()
                 .send(tokenReq, HttpResponse.BodyHandlers.ofString());
 
+            log.info("[GmailAPI] Token response status={} body={}", tokenResp.statusCode(), tokenResp.body());
+
             if (tokenResp.statusCode() >= 400) {
                 throw new RuntimeException("Error obteniendo access token: " + tokenResp.body());
             }
 
             String accessToken = extractJson(tokenResp.body(), "access_token");
-            if (accessToken == null) throw new RuntimeException("access_token no encontrado en respuesta");
+            if (accessToken == null) throw new RuntimeException("access_token no encontrado. Respuesta: " + tokenResp.body());
 
             // 2. Construir email en formato RFC 2822
             String rawEmail = "From: " + mailFromName + " <" + mailFrom + ">\r\n"
