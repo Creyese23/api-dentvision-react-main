@@ -214,12 +214,26 @@ public class EmailService {
 
     private void send(String to, String subject, String html) {
         if (isBrevoConfigured()) {
-            sendViaBrevo(to, subject, html);
-        } else if (isResendConfigured()) {
-            sendViaResend(to, subject, html);
-        } else {
-            sendViaSmtp(to, subject, html);
+            try {
+                sendViaBrevo(to, subject, html);
+                return;
+            } catch (Exception e) {
+                log.warn("[EmailService] Brevo falló ({}), intentando siguiente canal...", e.getMessage());
+            }
         }
+        if (isResendConfigured()) {
+            try {
+                sendViaResend(to, subject, html);
+                return;
+            } catch (Exception e) {
+                log.warn("[EmailService] Resend falló ({}), intentando SMTP...", e.getMessage());
+            }
+        }
+        if (isSmtpConfigured()) {
+            sendViaSmtp(to, subject, html);
+            return;
+        }
+        throw new IllegalStateException("Ningún canal de email disponible (Brevo/Resend/SMTP fallaron o no están configurados)");
     }
 
     private void sendViaBrevo(String to, String subject, String html) {
