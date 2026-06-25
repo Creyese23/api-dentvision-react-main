@@ -29,7 +29,7 @@ public class PagoController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA','ROLE_PACIENTE')")
     public ResponseEntity<PagoResponse> registrar(@Valid @RequestBody PagoRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(pagoService.registrar(request));
     }

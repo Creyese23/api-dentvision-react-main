@@ -31,13 +31,19 @@ public class MercadoPagoService {
     @Value("${app.backend-url:https://api-dentvision-react-main.onrender.com}")
     private String backendUrl;
 
+    @Transactional(readOnly = true)
     public String crearPreferencia(Long facturaId) {
         Factura factura = facturaRepository.findById(facturaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Factura " + facturaId + " no encontrada"));
 
         double total = factura.getTotal().doubleValue();
-        String nombrePaciente = factura.getPaciente().getUsuario().getPerfil().getNombres()
-                + " " + factura.getPaciente().getUsuario().getPerfil().getApellidos();
+        String nombrePaciente;
+        try {
+            nombrePaciente = factura.getPaciente().getUsuario().getPerfil().getNombres()
+                    + " " + factura.getPaciente().getUsuario().getPerfil().getApellidos();
+        } catch (Exception e) {
+            nombrePaciente = "Paciente";
+        }
 
         String body = String.format("""
                 {
