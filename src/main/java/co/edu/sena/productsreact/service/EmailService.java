@@ -24,33 +24,35 @@ public class EmailService {
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
 
-    // Resend (API key — prioridad sobre SMTP)
+    // Brevo HTTP API (prioridad máxima — funciona en Render sin bloqueo de puertos)
+    @Value("${BREVO_API_KEY:}")
+    private String brevoApiKey;
+
+    @Value("${app.mail.from:creyese23@gmail.com}")
+    private String mailFrom;
+
+    @Value("${app.mail.from-name:DentVision}")
+    private String mailFromName;
+
+    // Resend (segunda opción)
     @Value("${RESEND_API_KEY:}")
     private String resendApiKey;
 
     @Value("${RESEND_FROM:onboarding@resend.dev}")
     private String resendFrom;
 
-    // SMTP — credenciales Brevo
+    // SMTP — último recurso
     @Value("${spring.mail.username:}")
     private String smtpUsername;
 
-    @Value("${app.mail.from:afb680001@smtp-brevo.com}")
-    private String mailFrom;
-
-    @Value("${app.mail.from-name:DentVision}")
-    private String mailFromName;
-
     // ── estado ──────────────────────────────────────────────────────────────
+
+    public boolean isBrevoConfigured() {
+        return brevoApiKey != null && !brevoApiKey.isBlank();
+    }
 
     public boolean isResendConfigured() {
         return resendApiKey != null && !resendApiKey.isBlank();
-    }
-
-    @PostConstruct
-    public void logSmtpStatus() {
-        log.info("[EmailService] resend={} | mailSender={} | smtpUsername='{}' | mailFrom='{}' | canSend={}",
-            isResendConfigured(), mailSender != null ? "OK" : "NULL", smtpUsername, mailFrom, canSendEmail());
     }
 
     public boolean isSmtpConfigured() {
@@ -58,7 +60,13 @@ public class EmailService {
     }
 
     public boolean canSendEmail() {
-        return isResendConfigured() || isSmtpConfigured();
+        return isBrevoConfigured() || isResendConfigured() || isSmtpConfigured();
+    }
+
+    @PostConstruct
+    public void logSmtpStatus() {
+        log.info("[EmailService] brevo={} | resend={} | mailSender={} | mailFrom='{}' | canSend={}",
+            isBrevoConfigured(), isResendConfigured(), mailSender != null ? "OK" : "NULL", mailFrom, canSendEmail());
     }
 
     // ── URLs ─────────────────────────────────────────────────────────────────
@@ -202,13 +210,43 @@ public class EmailService {
         log.info("Notificación de cambio de contraseña enviada a {}", toEmail);
     }
 
-    // ── Despacho: Resend tiene prioridad sobre SMTP ──────────────────────────
+    // ── Despacho: Brevo API → Resend → SMTP ─────────────────────────────────
 
     private void send(String to, String subject, String html) {
-        if (isResendConfigured()) {
+        if (isBrevoConfigured()) {
+            sendViaBrevo(to, subject, html);
+        } else if (isResendConfigured()) {
             sendViaResend(to, subject, html);
         } else {
             sendViaSmtp(to, subject, html);
+        }
+    }
+
+    private void sendViaBrevo(String to, String subject, String html) {
+        try {
+            String body = String.format(
+                "{\"sender\":{\"name\":\"%s\",\"email\":\"%s\"}," +
+                "\"to\":[{\"email\":\"%s\"}]," +
+                "\"subject\":\"%s\"," +
+                "\"htmlContent\":%s}",
+                mailFromName, mailFrom, to, subject, toJsonString(html)
+            );
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                .timeout(Duration.ofSeconds(15))
+                .header("api-key", brevoApiKey)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+            HttpResponse<String> response = HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() >= 400) {
+                throw new RuntimeException("Brevo API error " + response.statusCode() + ": " + response.body());
+            }
+            log.debug("Brevo API OK → {} ({})", to, response.statusCode());
+        } catch (Exception e) {
+            log.error("Error enviando email vía Brevo API a {}: {}", to, e.getMessage());
+            throw new RuntimeException("Error enviando email: " + e.getMessage(), e);
         }
     }
 
