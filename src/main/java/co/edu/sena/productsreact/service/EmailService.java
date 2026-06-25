@@ -41,6 +41,16 @@ public class EmailService {
     @Value("${RESEND_FROM:onboarding@resend.dev}")
     private String resendFrom;
 
+    // Gmail API (alternativa a SMTP cuando Render bloquea puertos)
+    @Value("${GMAIL_CLIENT_ID:}")
+    private String gmailClientId;
+
+    @Value("${GMAIL_CLIENT_SECRET:}")
+    private String gmailClientSecret;
+
+    @Value("${GMAIL_REFRESH_TOKEN:}")
+    private String gmailRefreshToken;
+
     // SMTP — último recurso
     @Value("${spring.mail.username:}")
     private String smtpUsername;
@@ -55,18 +65,25 @@ public class EmailService {
         return resendApiKey != null && !resendApiKey.isBlank();
     }
 
+    public boolean isGmailApiConfigured() {
+        return gmailClientId != null && !gmailClientId.isBlank()
+            && gmailClientSecret != null && !gmailClientSecret.isBlank()
+            && gmailRefreshToken != null && !gmailRefreshToken.isBlank();
+    }
+
     public boolean isSmtpConfigured() {
         return mailSender != null;
     }
 
     public boolean canSendEmail() {
-        return isBrevoConfigured() || isResendConfigured() || isSmtpConfigured();
+        return isBrevoConfigured() || isResendConfigured() || isGmailApiConfigured() || isSmtpConfigured();
     }
 
     @PostConstruct
     public void logSmtpStatus() {
-        log.info("[EmailService] brevo={} | resend={} | mailSender={} | mailFrom='{}' | canSend={}",
-            isBrevoConfigured(), isResendConfigured(), mailSender != null ? "OK" : "NULL", mailFrom, canSendEmail());
+        log.info("[EmailService] brevo={} | resend={} | gmailApi={} | mailSender={} | mailFrom='{}' | canSend={}",
+            isBrevoConfigured(), isResendConfigured(), isGmailApiConfigured(),
+            mailSender != null ? "OK" : "NULL", mailFrom, canSendEmail());
     }
 
     // ── URLs ─────────────────────────────────────────────────────────────────
@@ -214,26 +231,22 @@ public class EmailService {
 
     private void send(String to, String subject, String html) {
         if (isBrevoConfigured()) {
-            try {
-                sendViaBrevo(to, subject, html);
-                return;
-            } catch (Exception e) {
-                log.warn("[EmailService] Brevo falló ({}), intentando siguiente canal...", e.getMessage());
-            }
+            try { sendViaBrevo(to, subject, html); return; }
+            catch (Exception e) { log.warn("[EmailService] Brevo falló: {}", e.getMessage()); }
         }
         if (isResendConfigured()) {
-            try {
-                sendViaResend(to, subject, html);
-                return;
-            } catch (Exception e) {
-                log.warn("[EmailService] Resend falló ({}), intentando SMTP...", e.getMessage());
-            }
+            try { sendViaResend(to, subject, html); return; }
+            catch (Exception e) { log.warn("[EmailService] Resend falló: {}", e.getMessage()); }
+        }
+        if (isGmailApiConfigured()) {
+            try { sendViaGmailApi(to, subject, html); return; }
+            catch (Exception e) { log.warn("[EmailService] Gmail API falló: {}", e.getMessage()); }
         }
         if (isSmtpConfigured()) {
-            sendViaSmtp(to, subject, html);
-            return;
+            try { sendViaSmtp(to, subject, html); return; }
+            catch (Exception e) { log.warn("[EmailService] SMTP falló: {}", e.getMessage()); }
         }
-        throw new IllegalStateException("Ningún canal de email disponible (Brevo/Resend/SMTP fallaron o no están configurados)");
+        throw new IllegalStateException("Ningún canal de email disponible");
     }
 
     private void sendViaBrevo(String to, String subject, String html) {
@@ -289,6 +302,76 @@ public class EmailService {
             log.error("Error enviando email vía Resend a {}: {}", to, e.getMessage());
             throw new RuntimeException("Error enviando email: " + e.getMessage(), e);
         }
+    }
+
+    private void sendViaGmailApi(String to, String subject, String html) {
+        try {
+            // 1. Obtener access token usando refresh token
+            String tokenBody = "client_id=" + gmailClientId
+                + "&client_secret=" + gmailClientSecret
+                + "&refresh_token=" + gmailRefreshToken
+                + "&grant_type=refresh_token";
+
+            HttpRequest tokenReq = HttpRequest.newBuilder()
+                .uri(URI.create("https://oauth2.googleapis.com/token"))
+                .timeout(Duration.ofSeconds(10))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(tokenBody))
+                .build();
+
+            HttpResponse<String> tokenResp = HttpClient.newHttpClient()
+                .send(tokenReq, HttpResponse.BodyHandlers.ofString());
+
+            if (tokenResp.statusCode() >= 400) {
+                throw new RuntimeException("Error obteniendo access token: " + tokenResp.body());
+            }
+
+            String accessToken = extractJson(tokenResp.body(), "access_token");
+            if (accessToken == null) throw new RuntimeException("access_token no encontrado en respuesta");
+
+            // 2. Construir email en formato RFC 2822
+            String rawEmail = "From: " + mailFromName + " <" + mailFrom + ">\r\n"
+                + "To: " + to + "\r\n"
+                + "Subject: =?UTF-8?B?" + java.util.Base64.getEncoder().encodeToString(subject.getBytes(java.nio.charset.StandardCharsets.UTF_8)) + "?=\r\n"
+                + "MIME-Version: 1.0\r\n"
+                + "Content-Type: text/html; charset=UTF-8\r\n"
+                + "Content-Transfer-Encoding: base64\r\n"
+                + "\r\n"
+                + java.util.Base64.getMimeEncoder().encodeToString(html.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            String encodedEmail = java.util.Base64.getUrlEncoder().encodeToString(rawEmail.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+            // 3. Enviar via Gmail API
+            String gmailBody = "{\"raw\":\"" + encodedEmail + "\"}";
+
+            HttpRequest sendReq = HttpRequest.newBuilder()
+                .uri(URI.create("https://gmail.googleapis.com/gmail/v1/users/me/messages/send"))
+                .timeout(Duration.ofSeconds(15))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(gmailBody))
+                .build();
+
+            HttpResponse<String> sendResp = HttpClient.newHttpClient()
+                .send(sendReq, HttpResponse.BodyHandlers.ofString());
+
+            if (sendResp.statusCode() >= 400) {
+                throw new RuntimeException("Gmail API error " + sendResp.statusCode() + ": " + sendResp.body());
+            }
+            log.debug("Gmail API OK → {} ({})", to, sendResp.statusCode());
+        } catch (Exception e) {
+            log.error("Error enviando email vía Gmail API a {}: {}", to, e.getMessage());
+            throw new RuntimeException("Error enviando email: " + e.getMessage(), e);
+        }
+    }
+
+    private String extractJson(String json, String key) {
+        String search = "\"" + key + "\":\"";
+        int start = json.indexOf(search);
+        if (start < 0) return null;
+        start += search.length();
+        int end = json.indexOf("\"", start);
+        return end < 0 ? null : json.substring(start, end);
     }
 
     private void sendViaSmtp(String to, String subject, String html) {
