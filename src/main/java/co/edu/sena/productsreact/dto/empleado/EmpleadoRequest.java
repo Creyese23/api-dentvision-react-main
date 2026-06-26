@@ -14,5 +14,7 @@ public record EmpleadoRequest(
         @NotBlank String tipoIdentificacion,
         String telefono,
         String direccion,
-        @NotBlank String cargo
+        @NotBlank String cargo,
+        String genero,
+        String especialidad
 ) {}

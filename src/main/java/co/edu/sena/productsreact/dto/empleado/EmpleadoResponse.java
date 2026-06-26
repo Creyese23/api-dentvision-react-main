@@ -14,6 +14,8 @@ public record EmpleadoResponse(
         String tipoIdentificacion,
         String telefono,
         String cargo,
+        String genero,
+        String especialidad,
         Boolean estado,
         LocalDateTime fechaCreacion
 ) {
@@ -28,6 +30,8 @@ public record EmpleadoResponse(
                 perfil != null ? perfil.getTipoIdentificacion() : null,
                 perfil != null ? perfil.getTelefono() : null,
                 e.getCargo(),
+                e.getGenero(),
+                e.getEspecialidad(),
                 e.getEstado(),
                 e.getFechaCreacion()
         );
