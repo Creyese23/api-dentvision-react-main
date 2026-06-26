@@ -37,4 +37,7 @@ public class PerfilUsuario {
 
     @Column(name = "foto_perfil", columnDefinition = "LONGTEXT")
     private String fotoPerfil;
+
+    @Column(length = 30)
+    private String genero;
 }
