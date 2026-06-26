@@ -41,8 +41,7 @@ public class EmpleadoService {
             "ODONTOLOGO",    "ROLE_ODONTOLOGO",
             "TECNICO",       "ROLE_TECNICO",
             "RECEPCIONISTA", "ROLE_RECEPCIONISTA",
-            "ADMINISTRADOR", "ROLE_ADMIN",
-            "AUXILIAR",      "ROLE_TECNICO"
+            "ADMINISTRADOR", "ROLE_ADMIN"
     );
 
     private void actualizarRolUsuario(User usuario, String cargo) {
