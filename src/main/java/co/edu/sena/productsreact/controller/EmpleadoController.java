@@ -35,7 +35,6 @@ public class EmpleadoController {
             @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(empleadoService.actualizarProfesional(
                 auth.getName(),
-                body.get("genero"),
                 body.get("especialidad")));
     }
 

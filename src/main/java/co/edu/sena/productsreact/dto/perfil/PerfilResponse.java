@@ -17,7 +17,8 @@ public record PerfilResponse(
         String telefono,
         String direccion,
         String fotoPerfil,
-        LocalDate fechaNacimiento
+        LocalDate fechaNacimiento,
+        String genero
 ) {
     public static PerfilResponse from(User user, PerfilUsuario p) {
         return new PerfilResponse(
@@ -26,7 +27,8 @@ public record PerfilResponse(
                 p.getTipoIdentificacion(), p.getIdentificacion(),
                 p.getTelefono(), p.getDireccion(),
                 p.getFotoPerfil(),
-                null
+                null,
+                p.getGenero()
         );
     }
 
@@ -37,7 +39,8 @@ public record PerfilResponse(
                 p.getTipoIdentificacion(), p.getIdentificacion(),
                 p.getTelefono(), p.getDireccion(),
                 p.getFotoPerfil(),
-                paciente != null ? paciente.getFechaNacimiento() : null
+                paciente != null ? paciente.getFechaNacimiento() : null,
+                p.getGenero()
         );
     }
 }

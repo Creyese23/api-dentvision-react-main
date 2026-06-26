@@ -54,6 +54,7 @@ public class PerfilService {
         if (req.telefono() != null) perfil.setTelefono(req.telefono());
         if (req.direccion() != null) perfil.setDireccion(req.direccion());
         if (req.fotoPerfil() != null) perfil.setFotoPerfil(req.fotoPerfil());
+        if (req.genero() != null) perfil.setGenero(req.genero());
         perfilRepository.save(perfil);
 
         boolean esPaciente = "ROLE_PACIENTE".equals(user.getRol().getNombreRol());

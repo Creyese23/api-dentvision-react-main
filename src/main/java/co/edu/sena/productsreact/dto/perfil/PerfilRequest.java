@@ -10,5 +10,6 @@ public record PerfilRequest(
         String telefono,
         String direccion,
         String fotoPerfil,
-        LocalDate fechaNacimiento
+        LocalDate fechaNacimiento,
+        String genero
 ) {}
