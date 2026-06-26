@@ -146,8 +146,21 @@ public class EmpleadoService {
         Empleado e = Empleado.builder()
                 .usuario(usuario)
                 .cargo(req.cargo())
+                .genero(req.genero())
+                .especialidad(req.especialidad())
                 .estado(true)
                 .build();
+        return EmpleadoResponse.from(empleadoRepository.save(e));
+    }
+
+    @Transactional
+    public EmpleadoResponse actualizarProfesional(String email, String genero, String especialidad) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Empleado e = empleadoRepository.findByUsuarioId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("No tienes un perfil de empleado registrado"));
+        e.setGenero(genero);
+        e.setEspecialidad(especialidad);
         return EmpleadoResponse.from(empleadoRepository.save(e));
     }
 
@@ -155,6 +168,8 @@ public class EmpleadoService {
     public EmpleadoResponse actualizar(Long id, EmpleadoRequest req) {
         Empleado e = getOrThrow(id);
         e.setCargo(req.cargo());
+        e.setGenero(req.genero());
+        e.setEspecialidad(req.especialidad());
 
         if (e.getUsuario() != null) {
             actualizarRolUsuario(e.getUsuario(), req.cargo());

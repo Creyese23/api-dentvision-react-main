@@ -25,6 +25,12 @@ public class Empleado {
     @Column(length = 60)
     private String cargo;
 
+    @Column(length = 20)
+    private String genero;
+
+    @Column(length = 120)
+    private String especialidad;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean estado = true;

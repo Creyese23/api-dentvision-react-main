@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/empleados")
@@ -25,6 +26,17 @@ public class EmpleadoController {
     @PreAuthorize("hasAnyAuthority('ROLE_ODONTOLOGO','ROLE_TECNICO','ROLE_RECEPCIONISTA','ROLE_ADMIN')")
     public ResponseEntity<EmpleadoResponse> miEmpleado(Authentication auth) {
         return ResponseEntity.ok(empleadoService.obtenerMiEmpleado(auth.getName()));
+    }
+
+    @PatchMapping("/me")
+    @PreAuthorize("hasAnyAuthority('ROLE_ODONTOLOGO','ROLE_TECNICO','ROLE_RECEPCIONISTA','ROLE_ADMIN')")
+    public ResponseEntity<EmpleadoResponse> actualizarMiProfesional(
+            Authentication auth,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(empleadoService.actualizarProfesional(
+                auth.getName(),
+                body.get("genero"),
+                body.get("especialidad")));
     }
 
     @GetMapping
