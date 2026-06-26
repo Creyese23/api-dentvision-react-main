@@ -57,7 +57,7 @@ public class EmpleadoController {
     }
 
     @GetMapping("/cargo/{cargo}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA','ROLE_PACIENTE')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA','ROLE_PACIENTE','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<List<EmpleadoResponse>> listarPorCargo(@PathVariable String cargo) {
         return ResponseEntity.ok(empleadoService.listarPorCargo(cargo));
     }
