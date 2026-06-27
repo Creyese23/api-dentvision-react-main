@@ -57,7 +57,7 @@ public class ProcedimientoController {
     }
 
     @PatchMapping("/{id}/estado")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<ProcedimientoResponse> cambiarEstado(@PathVariable Long id, @RequestParam String estado) {
         return ResponseEntity.ok(procedimientoService.cambiarEstado(id, estado));
     }

@@ -45,10 +45,10 @@ public class ProcedimientoService {
     public List<ProcedimientoResponse> listarPorTecnicoAutenticado(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-        Empleado tecnico = empleadoRepository.findByUsuarioId(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado"));
-        return procedimientoRepository.findByTecnicoIdWithDetails(tecnico.getId())
-                .stream().map(ProcedimientoResponse::from).toList();
+        return empleadoRepository.findByUsuarioId(user.getId())
+                .map(tecnico -> procedimientoRepository.findByTecnicoIdWithDetails(tecnico.getId())
+                        .stream().map(ProcedimientoResponse::from).toList())
+                .orElse(java.util.List.of());
     }
 
     public List<ProcedimientoResponse> listarPorCita(Long citaId) {
