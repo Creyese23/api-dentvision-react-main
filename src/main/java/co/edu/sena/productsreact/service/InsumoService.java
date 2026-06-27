@@ -57,6 +57,7 @@ public class InsumoService {
         i.setNombre(req.nombre());
         i.setDescripcion(req.descripcion());
         i.setUnidadMedida(req.unidadMedida());
+        if (req.stockActual() != null) i.setStockActual(req.stockActual());
         i.setStockMinimo(req.stockMinimo() != null ? req.stockMinimo() : i.getStockMinimo());
         i.setPrecioUnitario(req.precioUnitario());
         return InsumoResponse.from(insumoRepository.save(i));
