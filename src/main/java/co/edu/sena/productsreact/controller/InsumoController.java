@@ -21,19 +21,19 @@ public class InsumoController {
     private final InsumoService insumoService;
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_RECEPCIONISTA')")
     public ResponseEntity<List<InsumoResponse>> listar() {
         return ResponseEntity.ok(insumoService.listarActivos());
     }
 
     @GetMapping("/bajo-stock")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_RECEPCIONISTA')")
     public ResponseEntity<List<InsumoResponse>> bajoStock() {
         return ResponseEntity.ok(insumoService.listarBajoStock());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_RECEPCIONISTA')")
     public ResponseEntity<InsumoResponse> obtener(@PathVariable Long id) {
         return ResponseEntity.ok(insumoService.obtener(id));
     }
@@ -51,7 +51,7 @@ public class InsumoController {
     }
 
     @PostMapping("/movimiento")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_RECEPCIONISTA')")
     public ResponseEntity<InsumoResponse> movimiento(@Valid @RequestBody MovimientoRequest request) {
         return ResponseEntity.ok(insumoService.registrarMovimiento(request));
     }
