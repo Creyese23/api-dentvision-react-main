@@ -45,10 +45,12 @@ public class PagoController {
 
     @PostMapping("/mercadopago/preferencia")
     @PreAuthorize("hasAuthority('ROLE_PACIENTE')")
-    public ResponseEntity<Map<String, String>> crearPreferencia(@RequestBody Map<String, Long> body) {
-        Long facturaId = body.get("facturaId");
-        if (facturaId == null) return ResponseEntity.badRequest().build();
-        String initPoint = mercadoPagoService.crearPreferencia(facturaId);
+    public ResponseEntity<Map<String, String>> crearPreferencia(@RequestBody Map<String, Object> body) {
+        Object facturaIdObj = body.get("facturaId");
+        if (facturaIdObj == null) return ResponseEntity.badRequest().build();
+        Long facturaId = Long.valueOf(facturaIdObj.toString());
+        String metodoPago = body.containsKey("metodoPago") ? body.get("metodoPago").toString() : null;
+        String initPoint = mercadoPagoService.crearPreferencia(facturaId, metodoPago);
         return ResponseEntity.ok(Map.of("initPoint", initPoint));
     }
 
