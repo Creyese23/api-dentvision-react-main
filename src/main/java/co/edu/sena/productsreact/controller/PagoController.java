@@ -57,8 +57,7 @@ public class PagoController {
     public ResponseEntity<Map<String, String>> crearOrdenPayPal(@RequestBody Map<String, Long> body) {
         Long facturaId = body.get("facturaId");
         if (facturaId == null) return ResponseEntity.badRequest().build();
-        String orderId = payPalService.crearOrden(facturaId);
-        return ResponseEntity.ok(Map.of("orderId", orderId));
+        return ResponseEntity.ok(payPalService.crearOrden(facturaId));
     }
 
     @PostMapping("/paypal/capturar")

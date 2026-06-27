@@ -42,6 +42,9 @@ public class PayPalService {
     @Value("${PAYPAL_COP_TO_USD_RATE:4200}")
     private double copToUsdRate;
 
+    @Value("${app.frontend-url:https://dentvision-u6z4.onrender.com}")
+    private String frontendUrl;
+
     private String getBaseUrl() {
         return "sandbox".equals(mode)
                 ? "https://api-m.sandbox.paypal.com"
@@ -72,7 +75,13 @@ public class PayPalService {
         }
     }
 
-    public String crearOrden(Long facturaId) {
+    private String getApprovalBaseUrl() {
+        return "sandbox".equals(mode)
+                ? "https://www.sandbox.paypal.com"
+                : "https://www.paypal.com";
+    }
+
+    public java.util.Map<String, String> crearOrden(Long facturaId) {
         Factura factura = facturaRepository.findById(facturaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Factura " + facturaId + " no encontrada"));
 
@@ -82,6 +91,9 @@ public class PayPalService {
         if (usdAmount.compareTo(BigDecimal.valueOf(0.01)) < 0)
             usdAmount = BigDecimal.valueOf(0.01);
 
+        String returnUrl = frontendUrl + "/pago-exitoso?factura=" + facturaId;
+        String cancelUrl = frontendUrl + "/paciente/facturas";
+
         String token = getAccessToken();
         String body = """
                 {
@@ -90,9 +102,16 @@ public class PayPalService {
                     "reference_id": "%d",
                     "description": "Factura DentVision #%d",
                     "amount": { "currency_code": "USD", "value": "%s" }
-                  }]
+                  }],
+                  "application_context": {
+                    "brand_name": "DentVision",
+                    "landing_page": "NO_PREFERENCE",
+                    "user_action": "PAY_NOW",
+                    "return_url": "%s",
+                    "cancel_url": "%s"
+                  }
                 }
-                """.formatted(facturaId, facturaId, usdAmount.toPlainString());
+                """.formatted(facturaId, facturaId, usdAmount.toPlainString(), returnUrl, cancelUrl);
 
         try {
             HttpRequest req = HttpRequest.newBuilder()
@@ -114,8 +133,9 @@ public class PayPalService {
             if (orderId == null)
                 throw new RuntimeException("PayPal no devolvió orderId: " + resp.body());
 
-            log.info("[PayPal] Orden creada: {} para factura {}", orderId, facturaId);
-            return orderId;
+            String approvalUrl = getApprovalBaseUrl() + "/checkoutnow?token=" + orderId;
+            log.info("[PayPal] Orden creada: {} aprobación: {}", orderId, approvalUrl);
+            return java.util.Map.of("orderId", orderId, "approvalUrl", approvalUrl);
 
         } catch (RuntimeException e) {
             throw e;
