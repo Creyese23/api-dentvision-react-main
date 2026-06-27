@@ -210,6 +210,54 @@ public class EmailService {
         log.info("Notificación de factura enviada a {}", toEmail);
     }
 
+    // ── Notificaciones de procedimientos ─────────────────────────────────────
+
+    public void sendProcedimientoActualizado(String toEmail, String nombrePaciente,
+                                              String nombreProcedimiento, String estado) {
+        if (!canSendEmail()) { log.warn("Email no configurado — notificación de procedimiento no enviada"); return; }
+        String estadoLabel = switch (estado) {
+            case "COMPLETADO" -> "✅ Completado";
+            case "CANCELADO"  -> "❌ Cancelado";
+            default           -> "⏳ En proceso";
+        };
+        send(toEmail,
+            "DentVision — Actualización de procedimiento",
+            buildHtml(
+                "Actualización de procedimiento en DentVision",
+                "Procedimiento actualizado",
+                String.format("Hola %s, tu procedimiento <strong>%s</strong> ha sido actualizado.<br><br>"
+                    + "<b>📋 Estado actual:</b> %s<br><br>"
+                    + "Puedes ver el detalle completo en tu historial clínico.",
+                    nombrePaciente, nombreProcedimiento, estadoLabel),
+                frontendUrl + "/paciente/historial", "Ver historial clínico",
+                "Si tienes preguntas, contacta a tu odontólogo tratante."
+            ));
+        log.info("Notificación de procedimiento enviada a {}", toEmail);
+    }
+
+    public void sendPagoConfirmado(String toEmail, String nombrePaciente,
+                                    Long facturaId, String valor, String metodoPago, boolean facturaCompleta) {
+        if (!canSendEmail()) { log.warn("Email no configurado — notificación de pago no enviada"); return; }
+        String titulo = facturaCompleta ? "DentVision — Pago completado ✅" : "DentVision — Pago registrado 💰";
+        String heading = facturaCompleta ? "¡Factura pagada completamente!" : "Pago registrado";
+        String cuerpo = facturaCompleta
+            ? String.format("Hola %s, tu factura <strong>#%06d</strong> ha sido <strong>pagada en su totalidad</strong>.<br><br>"
+                + "<b>💰 Valor pagado:</b> %s COP<br>"
+                + "<b>💳 Método:</b> %s<br><br>"
+                + "Puedes descargar tu factura desde el panel de pagos.",
+                nombrePaciente, facturaId, valor, metodoPago)
+            : String.format("Hola %s, hemos registrado un abono en tu factura <strong>#%06d</strong>.<br><br>"
+                + "<b>💰 Valor abonado:</b> %s COP<br>"
+                + "<b>💳 Método:</b> %s<br><br>"
+                + "El saldo restante aún está pendiente.",
+                nombrePaciente, facturaId, valor, metodoPago);
+        send(toEmail, titulo,
+            buildHtml(titulo, heading, cuerpo,
+                frontendUrl + "/paciente/facturas", "Ver mis facturas",
+                "Si tienes dudas sobre este pago, contáctanos respondiendo este correo."));
+        log.info("Notificación de pago enviada a {}", toEmail);
+    }
+
     public void sendPasswordChangedEmail(String toEmail) {
         if (!canSendEmail()) {
             log.warn("Email no configurado - notificación de cambio de contraseña no enviada a {}", toEmail);

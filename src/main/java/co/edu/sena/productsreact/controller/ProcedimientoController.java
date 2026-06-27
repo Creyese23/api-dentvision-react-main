@@ -1,5 +1,6 @@
 package co.edu.sena.productsreact.controller;
 
+import co.edu.sena.productsreact.dto.procedimiento.ProcedimientoInsumoResponse;
 import co.edu.sena.productsreact.dto.procedimiento.ProcedimientoRequest;
 import co.edu.sena.productsreact.dto.procedimiento.ProcedimientoResponse;
 import co.edu.sena.productsreact.service.ProcedimientoService;
@@ -57,7 +58,7 @@ public class ProcedimientoController {
     }
 
     @PatchMapping("/{id}/estado")
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
     public ResponseEntity<ProcedimientoResponse> cambiarEstado(@PathVariable Long id, @RequestParam String estado) {
         return ResponseEntity.ok(procedimientoService.cambiarEstado(id, estado));
     }
@@ -66,6 +67,32 @@ public class ProcedimientoController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         procedimientoService.eliminar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ── Insumos utilizados en el procedimiento ────────────────────────────────
+
+    @GetMapping("/{id}/insumos")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    public ResponseEntity<List<ProcedimientoInsumoResponse>> listarInsumos(@PathVariable Long id) {
+        return ResponseEntity.ok(procedimientoService.listarInsumos(id));
+    }
+
+    @PostMapping("/{id}/insumos")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    public ResponseEntity<ProcedimientoInsumoResponse> registrarInsumo(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Object> body) {
+        Long insumoId = Long.valueOf(body.get("idInsumo").toString());
+        Integer cantidad = Integer.valueOf(body.get("cantidad").toString());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(procedimientoService.registrarInsumo(id, insumoId, cantidad));
+    }
+
+    @DeleteMapping("/{id}/insumos/{piId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    public ResponseEntity<Void> eliminarInsumo(@PathVariable Long id, @PathVariable Long piId) {
+        procedimientoService.eliminarInsumo(piId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -188,7 +188,22 @@ public class CitaService {
     public CitaResponse cambiarEstado(Long id, String estado) {
         Cita cita = getOrThrow(id);
         cita.setEstado(estado);
-        return CitaResponse.from(citaRepository.save(cita));
+        CitaResponse resp = CitaResponse.from(citaRepository.save(cita));
+        try {
+            String email = cita.getPaciente().getUsuario().getEmail();
+            String nombre = cita.getPaciente().getUsuario().getPerfil().getNombres();
+            String fechaHora = cita.getFechaHora().format(FMT);
+            String odontologo = cita.getOdontologo().getUsuario().getPerfil().getNombres()
+                    + " " + cita.getOdontologo().getUsuario().getPerfil().getApellidos();
+            if ("CONFIRMADA".equals(estado)) {
+                emailService.sendCitaConfirmada(email, nombre, cita.getMotivo(), fechaHora, odontologo);
+            } else if ("CANCELADA".equals(estado)) {
+                emailService.sendCitaCancelada(email, nombre, cita.getMotivo(), fechaHora);
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo enviar email de cambio de estado de cita: {}", e.getMessage());
+        }
+        return resp;
     }
 
     @Transactional
