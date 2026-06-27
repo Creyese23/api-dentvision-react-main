@@ -4,6 +4,7 @@ import co.edu.sena.productsreact.dto.pago.PagoRequest;
 import co.edu.sena.productsreact.dto.pago.PagoResponse;
 import co.edu.sena.productsreact.service.MercadoPagoService;
 import co.edu.sena.productsreact.service.PagoService;
+import co.edu.sena.productsreact.service.PayPalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +22,7 @@ public class PagoController {
 
     private final PagoService pagoService;
     private final MercadoPagoService mercadoPagoService;
+    private final PayPalService payPalService;
 
     @GetMapping("/factura/{facturaId}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA','ROLE_PACIENTE')")
@@ -48,6 +50,23 @@ public class PagoController {
         if (facturaId == null) return ResponseEntity.badRequest().build();
         String initPoint = mercadoPagoService.crearPreferencia(facturaId);
         return ResponseEntity.ok(Map.of("initPoint", initPoint));
+    }
+
+    @PostMapping("/paypal/crear-orden")
+    @PreAuthorize("hasAuthority('ROLE_PACIENTE')")
+    public ResponseEntity<Map<String, String>> crearOrdenPayPal(@RequestBody Map<String, Long> body) {
+        Long facturaId = body.get("facturaId");
+        if (facturaId == null) return ResponseEntity.badRequest().build();
+        String orderId = payPalService.crearOrden(facturaId);
+        return ResponseEntity.ok(Map.of("orderId", orderId));
+    }
+
+    @PostMapping("/paypal/capturar")
+    @PreAuthorize("hasAuthority('ROLE_PACIENTE')")
+    public ResponseEntity<PagoResponse> capturarPayPal(@RequestBody Map<String, Object> body) {
+        String orderId = (String) body.get("orderId");
+        Long facturaId = Long.valueOf(body.get("facturaId").toString());
+        return ResponseEntity.ok(payPalService.capturarOrden(orderId, facturaId));
     }
 
     @PostMapping("/mercadopago/webhook")
