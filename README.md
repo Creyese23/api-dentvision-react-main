@@ -1,6 +1,6 @@
-# DENTVISION API
+# DentVision API
 
-API REST para el sistema de gestión de clínica odontológica **DENTVISION**, desarrollada con **Spring Boot 3.5.13** y **Java 21** en el marco del programa **Tecnólogo en Análisis y Desarrollo de Software (ADSO) — ficha 3067454** del SENA.
+API REST para el sistema de gestión de clínica odontológica **DENTVISION**, desarrollada con **Spring Boot 3.x** y **Java 21** en el marco del programa **Tecnólogo en Análisis y Desarrollo de Software (ADSO) — ficha 3067454** del SENA.
 
 Instructor: **Jeyson David Zúñiga Gómez**
 
@@ -8,372 +8,307 @@ Instructor: **Jeyson David Zúñiga Gómez**
 
 ## Tecnologías
 
-| Componente | Versión |
-| --- | --- |
-| Spring Boot | 3.5.13 |
-| Java | 21 |
-| Spring Security + JWT (jjwt) | 0.13.0 |
-| Spring Data JPA / Hibernate | 6.x |
-| Lombok | 1.18.34 |
-| MySQL | 8+ |
-| SQL Server | 2019+ |
+| Herramienta | Versión | Uso |
+|---|---|---|
+| Java | 21 | Lenguaje principal |
+| Spring Boot | 3.x | Framework principal |
+| Spring Security | 6 | Autenticación y autorización |
+| Spring Data JPA | — | Acceso a base de datos |
+| JWT (jjwt) | — | Tokens de autenticación sin estado |
+| OAuth2 | — | Inicio de sesión con Google / GitHub |
+| Lombok | — | Reducción de boilerplate (getters, setters, constructores) |
+| MercadoPago SDK | — | Pasarela de pago Colombia |
+| PayPal SDK | — | Pasarela de pago internacional |
+| Brevo / SendGrid | — | Envío de correos electrónicos |
+| MySQL / PostgreSQL | — | Base de datos relacional |
+| Maven | — | Gestión de dependencias y build |
 
 ---
 
-## Módulos del sistema
-
-| Módulo | Tablas principales |
-| --- | --- |
-| Identidad y acceso | `roles`, `usuarios`, `perfiles_usuario`, `refresh_tokens` |
-| Pacientes | `pacientes` |
-| Personal | `empleados` |
-| Agenda clínica | `citas`, `citas_servicios`, `servicios`, `procedimientos` |
-| Facturación y pagos | `facturas`, `detalle_factura`, `pagos` |
-| Inventario | `insumos`, `movimientos_inventario` |
-| Órdenes de laboratorio | `ordenes`, `orden_detalle`, `entregas` |
-| Comunicación | `conversaciones`, `mensajes` |
-
----
-
-## Estructura del proyecto
+## Arquitectura
 
 ```
-src/main/java/co/edu/sena/productsreact/
-├── config/
-│   ├── JpaAuditingConfig.java
-│   └── SecurityConfig.java
-├── controller/
-│   ├── AuthController.java
-│   ├── CitaController.java
-│   ├── ConversacionController.java
-│   ├── EmpleadoController.java
-│   ├── FacturaController.java
-│   ├── InsumoController.java
-│   ├── OrdenController.java
-│   ├── PacienteController.java
-│   ├── PagoController.java
-│   ├── ProcedimientoController.java
-│   └── ServicioController.java
-├── dto/
-│   ├── auth/          (AuthResponse, LoginRequest, RegisterRequest, UserDto)
-│   ├── cita/          (CitaRequest, CitaResponse)
-│   ├── comunicacion/  (MensajeRequest, MensajeResponse)
-│   ├── empleado/      (EmpleadoRequest, EmpleadoResponse)
-│   ├── factura/       (FacturaRequest, FacturaResponse, DetalleFacturaRequest)
-│   ├── insumo/        (InsumoRequest, InsumoResponse, MovimientoRequest)
-│   ├── orden/         (OrdenRequest, OrdenResponse)
-│   ├── paciente/      (PacienteRequest, PacienteResponse)
-│   ├── pago/          (PagoRequest, PagoResponse)
-│   ├── procedimiento/ (ProcedimientoRequest, ProcedimientoResponse)
-│   └── servicio/      (ServicioRequest, ServicioResponse)
-├── entity/
-│   ├── Cita.java             CitaServicio.java
-│   ├── Conversacion.java     DetalleFactura.java
-│   ├── Empleado.java         Entrega.java
-│   ├── Factura.java          Insumo.java
-│   ├── Mensaje.java          MovimientoInventario.java
-│   ├── Orden.java            OrdenDetalle.java
-│   ├── Paciente.java         Pago.java
-│   ├── PerfilUsuario.java    Procedimiento.java
-│   ├── RefreshToken.java     Rol.java
-│   ├── Servicio.java         User.java
-├── exception/
-│   ├── ApiError.java
-│   ├── DuplicateResourceException.java
-│   ├── GlobalExceptionHandler.java
-│   └── ResourceNotFoundException.java
-├── repository/           (un repositorio por entidad)
-├── security/
-│   ├── CustomUserDetailsService.java
-│   ├── JwtAuthenticationFilter.java
-│   └── JwtService.java
-├── service/
-│   ├── AuthService.java        CitaService.java
-│   ├── ConversacionService.java EmpleadoService.java
-│   ├── FacturaService.java     InsumoService.java
-│   ├── OrdenService.java       PacienteService.java
-│   ├── PagoService.java        ProcedimientoService.java
-│   └── ServicioService.java
-└── ProductsReactApiApplication.java
+Request HTTP
+    ↓
+[Filter: JwtAuthenticationFilter]   ← valida Bearer token, carga UserDetails
+    ↓
+[Controller]                        ← recibe request, delega al service
+    ↓
+[Service]                           ← lógica de negocio, transacciones
+    ↓
+[Repository]                        ← acceso a BD vía JPA / JPQL
+    ↓
+[Entity / Database]
+```
+
+### Paquetes principales
+
+```
+co.edu.sena.productsreact/
+├── config/            # Configuración de Spring Security, JPA Auditing, Beans, Seeders
+├── security/          # JWT Service, Filtro JWT, UserDetailsService, OAuth2 Handler
+├── entity/            # Entidades JPA (User, Paciente, Cita, Factura, Orden, etc.)
+├── repository/        # Interfaces JPA con queries personalizadas
+├── service/           # Lógica de negocio por dominio
+├── controller/        # Endpoints REST anotados con @RestController
+├── dto/               # Objetos de transferencia de datos (Request / Response)
+│   ├── auth/
+│   ├── cita/
+│   ├── factura/
+│   ├── insumo/
+│   ├── orden/
+│   ├── paciente/
+│   ├── pago/
+│   ├── perfil/
+│   ├── procedimiento/
+│   ├── servicio/
+│   └── usuario/
+└── exception/         # Manejador global de excepciones, DTOs de error
 ```
 
 ---
 
-## Requisitos
+## Entidades del dominio
 
-- JDK 21
-- Maven 3.9+
-- MySQL 8+ **o** SQL Server 2019+
-
----
-
-## Puesta en marcha
-
-### 1. Copiar y editar el `.env`
-
-```bash
-cp .env.example .env
-```
-
-Variables obligatorias:
-
-```env
-# Base de datos (ajustar según perfil elegido)
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=dentvision
-DB_USERNAME=root
-DB_PASSWORD=tu_password
-
-# JWT
-JWT_SECRET=clave-base64-minimo-256bits
-JWT_EXPIRATION_MS=86400000    # 1 día (access token)
-JWT_REFRESH_DAYS=7            # refresh token
-
-# Perfil activo
-SPRING_PROFILES_ACTIVE=mysql-dev
-```
-
-Perfiles disponibles: `mysql-dev`, `mysql-prod`, `sqlserver-dev`, `sqlserver-prod`.
-
-### 2. Arrancar
-
-```bash
-./mvnw spring-boot:run
-```
-
-La API queda en `http://localhost:8080`.
-
-### 3. Datos semilla
-
-Al iniciar por primera vez se insertan automáticamente:
-
-| Dato | Valor |
-| --- | --- |
-| Email admin | `admin@dentvision.co` |
-| Password | `password` |
-| Rol | `ROLE_ADMIN` |
-| Roles creados | `ROLE_ADMIN`, `ROLE_ODONTOLOGO`, `ROLE_RECEPCIONISTA`, `ROLE_TECNICO`, `ROLE_PACIENTE` |
-| Servicios | Consulta General, Limpieza Dental, Extracción Simple, Blanqueamiento, Ortodoncia, Endodoncia |
-| Insumos | Guantes, Tapabocas, Anestesia, Resina |
+| Entidad | Descripción |
+|---|---|
+| `User` | Usuario del sistema con email, contraseña cifrada y rol |
+| `Rol` | Rol de seguridad: ROLE_ADMIN, ROLE_ODONTOLOGO, ROLE_RECEPCIONISTA, ROLE_TECNICO, ROLE_PACIENTE |
+| `PerfilUsuario` | Datos personales extendidos del usuario (nombres, teléfono, documento) |
+| `Paciente` | Paciente vinculado a un User; incluye historial de alergias |
+| `Empleado` | Empleado vinculado a un User; incluye cargo y especialidad |
+| `Cita` | Cita odontológica entre paciente y odontólogo con fecha, hora y estado |
+| `CitaServicio` | Relación M-M entre Cita y Servicio |
+| `Servicio` | Servicio odontológico con nombre, descripción, valor y duración |
+| `SubServicio` | Subdivsión de un servicio (ej. Limpieza → Tartrectomía) |
+| `Procedimiento` | Procedimiento ejecutado en una cita; tiene estado y notas médicas |
+| `Orden` | Orden de laboratorio derivada de un procedimiento |
+| `Entrega` | Registro de entrega de una orden de laboratorio |
+| `Insumo` | Insumo de inventario con stock y punto de reorden |
+| `MovimientoInventario` | Entrada/salida de insumos con responsable y fecha |
+| `Factura` | Factura asociada a un paciente con detalles de cobro |
+| `DetalleFactura` | Ítem individual de una factura (concepto, cantidad, valor) |
+| `Pago` | Registro de pago de factura con método y referencia de transacción |
+| `Conversacion` | Hilo de chat entre paciente y técnico/odontólogo |
+| `Mensaje` | Mensaje individual dentro de una conversación |
+| `RefreshToken` | Token de refresco de sesión con expiración |
 
 ---
 
-## Endpoints
+## Endpoints principales
 
-### Autenticación — `POST /auth/**` (público)
+### Autenticación — `/auth`
 
-| Método | Ruta | Body | Respuesta |
-| --- | --- | --- | --- |
-| POST | `/auth/register` | `{ email, password, nombres?, apellidos?, telefono? }` | `201 { accessToken, refreshToken, user }` |
-| POST | `/auth/login` | `{ email, password }` | `200 { accessToken, refreshToken, user }` |
-| POST | `/auth/refresh` | `{ refreshToken }` | `200 { accessToken, refreshToken, user }` |
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/auth/login` | Inicio de sesión; retorna accessToken + refreshToken |
+| POST | `/auth/register` | Registro de nuevo paciente |
+| POST | `/auth/refresh` | Renovar accessToken usando refreshToken |
+| POST | `/auth/forgot-password` | Enviar email de recuperación de contraseña |
+| POST | `/auth/reset-password` | Resetear contraseña con token del email |
+| GET | `/auth/verify-email` | Verificar cuenta con token de confirmación |
+| POST | `/auth/logout` | Cerrar sesión e invalidar refreshToken |
 
-Registrar un nuevo usuario crea automáticamente el perfil y asigna `ROLE_PACIENTE`.
+### Usuarios — `/api/usuarios` (ADMIN)
 
----
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/usuarios` | Listar todos los usuarios |
+| POST | `/api/usuarios` | Crear usuario |
+| PATCH | `/api/usuarios/{id}/rol` | Cambiar rol de usuario |
+| PATCH | `/api/usuarios/{id}/estado` | Activar / desactivar usuario |
 
 ### Pacientes — `/api/pacientes`
 
-| Método | Ruta | Roles permitidos |
-| --- | --- | --- |
-| GET | `/api/pacientes` | ADMIN, ODONTOLOGO, RECEPCIONISTA |
-| GET | `/api/pacientes/buscar?q=texto` | ADMIN, ODONTOLOGO, RECEPCIONISTA |
-| GET | `/api/pacientes/{id}` | ADMIN, ODONTOLOGO, RECEPCIONISTA, PACIENTE |
-| POST | `/api/pacientes` | ADMIN, RECEPCIONISTA |
-| PUT | `/api/pacientes/{id}` | ADMIN, RECEPCIONISTA |
-| DELETE | `/api/pacientes/{id}` | ADMIN (soft-delete) |
-
----
-
-### Empleados — `/api/empleados`
-
-| Método | Ruta | Roles permitidos |
-| --- | --- | --- |
-| GET | `/api/empleados` | ADMIN, RECEPCIONISTA |
-| GET | `/api/empleados/cargo/{cargo}` | ADMIN, RECEPCIONISTA |
-| GET | `/api/empleados/{id}` | ADMIN, ODONTOLOGO, RECEPCIONISTA |
-| POST | `/api/empleados` | ADMIN |
-| PUT | `/api/empleados/{id}` | ADMIN |
-| DELETE | `/api/empleados/{id}` | ADMIN (soft-delete) |
-
----
-
-### Servicios — `/api/servicios`
-
-| Método | Ruta | Roles permitidos |
-| --- | --- | --- |
-| GET | `/api/servicios` | Público |
-| GET | `/api/servicios/{id}` | Público |
-| POST | `/api/servicios` | ADMIN |
-| PUT | `/api/servicios/{id}` | ADMIN |
-| DELETE | `/api/servicios/{id}` | ADMIN (desactiva) |
-
----
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/pacientes` | Listar todos (ADMIN, ODONTOLOGO, RECEPCIONISTA) |
+| GET | `/api/pacientes/me` | Mis datos como paciente |
+| POST | `/api/pacientes` | Crear paciente (ADMIN) |
+| PUT | `/api/pacientes/{id}` | Actualizar paciente |
+| DELETE | `/api/pacientes/{id}` | Eliminar paciente (ADMIN) |
+| GET | `/api/pacientes/pendientes` | Pacientes pendientes de activación (ADMIN) |
+| PATCH | `/api/pacientes/{id}/activar` | Activar paciente |
 
 ### Citas — `/api/citas`
 
 | Método | Ruta | Descripción |
-| --- | --- | --- |
-| GET | `/api/citas/paciente/{id}` | Citas de un paciente |
-| GET | `/api/citas/odontologo/{id}` | Agenda de un odontólogo |
-| GET | `/api/citas/rango?inicio=&fin=` | Citas en rango de fechas (ISO 8601) |
-| GET | `/api/citas/{id}` | Detalle de cita |
-| POST | `/api/citas` | Crear cita |
-| PUT | `/api/citas/{id}` | Actualizar cita |
-| PATCH | `/api/citas/{id}/estado?estado=` | Cambiar estado (`PROGRAMADA`, `ATENDIDA`, `CANCELADA`) |
-| DELETE | `/api/citas/{id}` | Cancelar cita (soft-delete) |
-
----
+|---|---|---|
+| GET | `/api/citas` | Listar citas con filtros (rango de fechas, estado) |
+| GET | `/api/citas/mis-citas` | Citas del paciente autenticado |
+| GET | `/api/citas/odontologo/{id}` | Citas de un odontólogo |
+| GET | `/api/citas/disponibles` | Horarios disponibles de un odontólogo |
+| POST | `/api/citas` | Agendar cita (ADMIN / RECEPCIONISTA) |
+| POST | `/api/citas/agendar` | Agendar cita (PACIENTE) |
+| PATCH | `/api/citas/{id}/estado` | Cambiar estado de cita |
+| DELETE | `/api/citas/{id}` | Cancelar cita |
 
 ### Procedimientos — `/api/procedimientos`
 
 | Método | Ruta | Descripción |
-| --- | --- | --- |
+|---|---|---|
+| GET | `/api/procedimientos` | Listar procedimientos |
 | GET | `/api/procedimientos/cita/{citaId}` | Procedimientos de una cita |
-| GET | `/api/procedimientos/{id}` | Detalle |
 | POST | `/api/procedimientos` | Crear procedimiento |
-| PUT | `/api/procedimientos/{id}` | Actualizar |
-| PATCH | `/api/procedimientos/{id}/estado?estado=` | Cambiar estado (`EN_PROCESO`, `COMPLETADO`) |
-| DELETE | `/api/procedimientos/{id}` | Eliminar (soft-delete, solo ADMIN) |
+| PATCH | `/api/procedimientos/{id}/estado` | Actualizar estado |
+| PUT | `/api/procedimientos/{id}` | Actualizar procedimiento |
 
----
-
-### Facturación — `/api/facturas` y `/api/pagos`
+### Órdenes — `/api/ordenes`
 
 | Método | Ruta | Descripción |
-| --- | --- | --- |
+|---|---|---|
+| GET | `/api/ordenes` | Listar órdenes por estado o asignadas |
+| GET | `/api/ordenes/{id}` | Detalle de una orden |
+| POST | `/api/ordenes` | Crear orden de laboratorio |
+| PATCH | `/api/ordenes/{id}/estado` | Cambiar estado |
+| POST | `/api/ordenes/{id}/imagen` | Subir imagen de resultado |
+
+### Facturas — `/api/facturas`
+
+| Método | Ruta | Descripción |
+|---|---|---|
 | GET | `/api/facturas/paciente/{id}` | Facturas de un paciente |
-| GET | `/api/facturas/{id}` | Detalle de factura |
-| POST | `/api/facturas` | Crear factura (estado `PENDIENTE`, total `0`) |
-| POST | `/api/facturas/{id}/detalle` | Agregar servicio a factura (recalcula total) |
-| PATCH | `/api/facturas/{id}/estado?estado=` | Cambiar estado |
-| DELETE | `/api/facturas/{id}` | Eliminar (soft-delete, solo ADMIN) |
-| GET | `/api/pagos/factura/{facturaId}` | Pagos de una factura |
-| POST | `/api/pagos` | Registrar pago (marca factura como `PAGADA` si cubre el total) |
-| DELETE | `/api/pagos/{id}` | Anular pago (solo ADMIN) |
+| POST | `/api/facturas` | Crear factura |
+| POST | `/api/facturas/{id}/detalle` | Agregar ítem a factura |
+| PATCH | `/api/facturas/{id}/estado` | Cambiar estado de factura |
+| POST | `/api/facturas/desde-cita/{citaId}` | Generar factura desde cita |
+| DELETE | `/api/facturas/{id}` | Eliminar factura |
 
----
-
-### Inventario — `/api/insumos`
+### Pagos — `/api/pagos`
 
 | Método | Ruta | Descripción |
-| --- | --- | --- |
+|---|---|---|
+| POST | `/api/pagos` | Registrar pago manual (Efectivo, Otro) |
+| GET | `/api/pagos/factura/{id}` | Pagos de una factura |
+| DELETE | `/api/pagos/{id}` | Eliminar pago |
+| POST | `/api/pagos/mercadopago/preferencia` | Crear preferencia MercadoPago |
+| POST | `/api/pagos/mercadopago/webhook` | Webhook de notificaciones MP |
+| POST | `/api/pagos/paypal/crear-orden` | Crear orden PayPal |
+| POST | `/api/pagos/paypal/capturar` | Capturar pago PayPal |
+
+### Insumos — `/api/insumos`
+
+| Método | Ruta | Descripción |
+|---|---|---|
 | GET | `/api/insumos` | Listar insumos activos |
-| GET | `/api/insumos/bajo-stock` | Insumos con `stockActual <= stockMinimo` |
-| GET | `/api/insumos/{id}` | Detalle |
-| POST | `/api/insumos` | Crear insumo (solo ADMIN) |
-| PUT | `/api/insumos/{id}` | Actualizar (solo ADMIN) |
-| POST | `/api/insumos/movimiento` | Entrada o salida de stock (valida stock disponible) |
-| DELETE | `/api/insumos/{id}` | Desactivar (solo ADMIN) |
+| GET | `/api/insumos/bajo-stock` | Insumos bajo el punto de reorden |
+| POST | `/api/insumos` | Crear insumo |
+| PUT | `/api/insumos/{id}` | Actualizar insumo |
+| POST | `/api/insumos/{id}/movimiento` | Registrar entrada o salida de stock |
 
-Body de movimiento:
-```json
-{ "idInsumo": 1, "idEmpleado": 2, "cantidad": 10, "tipoMovimiento": "ENTRADA" }
-```
-`tipoMovimiento`: `ENTRADA` o `SALIDA`.
-
----
-
-### Órdenes de laboratorio — `/api/ordenes`
+### Entregas — `/api/entregas`
 
 | Método | Ruta | Descripción |
-| --- | --- | --- |
-| GET | `/api/ordenes?estado=PENDIENTE` | Listar por estado |
-| GET | `/api/ordenes/procedimiento/{id}` | Órdenes de un procedimiento |
-| GET | `/api/ordenes/{id}` | Detalle |
-| POST | `/api/ordenes` | Crear orden (crea la entrega automáticamente) |
-| PATCH | `/api/ordenes/{id}/estado?estado=` | Cambiar estado (`PENDIENTE`, `EN_PROCESO`, `ENTREGADA`) |
+|---|---|---|
+| GET | `/api/entregas` | Listar entregas |
+| GET | `/api/entregas/mis-entregas` | Entregas propias (TECNICO) |
+| PATCH | `/api/entregas/{id}/estado` | Actualizar estado de entrega |
 
----
-
-### Comunicación — `/api/conversaciones`
+### Conversaciones — `/api/conversaciones`
 
 | Método | Ruta | Descripción |
-| --- | --- | --- |
-| POST | `/api/conversaciones/iniciar?pacienteId=&procedimientoId=` | Iniciar conversación |
+|---|---|---|
+| POST | `/api/conversaciones` | Iniciar conversación |
+| GET | `/api/conversaciones/mis-conversaciones` | Conversaciones del paciente |
 | GET | `/api/conversaciones/{id}/mensajes` | Mensajes de una conversación |
-| POST | `/api/conversaciones/mensajes` | Enviar mensaje |
+| POST | `/api/conversaciones/{id}/mensajes` | Enviar mensaje |
 | PATCH | `/api/conversaciones/{id}/cerrar` | Cerrar conversación |
 
 ---
 
 ## Seguridad
 
-- `/auth/**` y `GET /api/servicios` son públicos. El resto requiere JWT válido en `Authorization: Bearer <token>`.
-- Los permisos por endpoint se controlan con `@PreAuthorize` a nivel de método.
-- Los tokens de acceso se firman con **HS256**; la clave viene de `JWT_SECRET`.
-- Las contraseñas se almacenan con **BCrypt** (strength 10).
-- Al hacer login se revocan todos los refresh tokens anteriores del usuario.
+- **JWT Access Token:** 15 minutos de vigencia, firmado con clave secreta HS256.
+- **Refresh Token:** 7 días, almacenado en BD para invalidación explícita.
+- **@PreAuthorize:** anotaciones por método para control granular de permisos.
+- **CORS:** configurado para permitir el origen del frontend en desarrollo y producción.
+- **Contraseñas:** cifradas con BCrypt antes de almacenar.
+- **OAuth2:** autenticación con Google o GitHub genera JWT propio del sistema.
 
 ---
 
-## Formato de errores
+## Variables de entorno
 
-Todos los errores responden con la misma estructura:
+Configura las siguientes variables en Render (o en tu `.env` local):
 
-```json
-{
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Errores de validación en los datos enviados",
-  "path": "/api/pacientes",
-  "timestamp": "2026-06-12T10:15:30",
-  "fields": {
-    "documento": "no debe estar vacío"
-  }
-}
+```env
+# Base de datos
+DB_URL=jdbc:mysql://host:3306/dentvision
+DB_USERNAME=usuario
+DB_PASSWORD=contraseña
+
+# JWT
+JWT_SECRET=clave-secreta-muy-larga-y-segura
+JWT_EXPIRATION=900000
+JWT_REFRESH_EXPIRATION=604800000
+
+# OAuth2
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+FRONTEND_URL=https://tu-frontend.onrender.com
+
+# Email (Brevo/SMTP)
+BREVO_API_KEY=...
+MAIL_FROM=no-reply@dentvision.com
+
+# MercadoPago
+MP_ACCESS_TOKEN=APP_USR-...
+
+# PayPal
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+PAYPAL_MODE=sandbox
 ```
 
-| Caso | Status HTTP |
-| --- | --- |
-| Validación de campos | 400 |
-| JSON mal formado | 400 |
-| Credenciales inválidas / token expirado | 401 |
-| Sin permiso para el recurso | 403 |
-| Recurso no encontrado | 404 |
-| Email / documento duplicado | 409 |
-| Error inesperado | 500 |
+> **NUNCA** incluyas estas claves en el código fuente ni en el repositorio de Git.
 
 ---
 
-## Ejemplos con curl
+## Instalación y ejecución local
 
-**Registro:**
 ```bash
-curl -X POST http://localhost:8080/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"maria@email.com","password":"Clave1234!","nombres":"Maria","apellidos":"Lopez"}'
-```
+# 1. Clonar el repositorio
+git clone https://github.com/Creyese23/api-dentvision.git
+cd api-dentvision
 
-**Login:**
-```bash
-curl -X POST http://localhost:8080/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@dentvision.co","password":"password"}'
-```
+# 2. Configurar base de datos MySQL local
+CREATE DATABASE dentvision CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-**Crear paciente (requiere token):**
-```bash
-curl -X POST http://localhost:8080/api/pacientes \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"nombres":"Carlos","apellidos":"Ruiz","documento":"12345678","tipoIdentificacion":"CC","telefono":"3001234567","genero":"M","fechaNacimiento":"1990-05-15"}'
-```
+# 3. Crear archivo .env con las variables de entorno
+cp .env.example .env
+# Editar .env con tus credenciales locales
 
-**Registrar movimiento de inventario:**
-```bash
-curl -X POST http://localhost:8080/api/insumos/movimiento \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"idInsumo":1,"cantidad":50,"tipoMovimiento":"ENTRADA"}'
+# 4. Compilar y ejecutar
+./mvnw spring-boot:run
+
+# La API estará disponible en http://localhost:8080
 ```
 
 ---
 
-## Notas
+## Despliegue en Render
 
-- El archivo `.env` **no debe commitearse**. Ya está en `.gitignore`.
-- En los perfiles `-prod` se recomienda cambiar `ddl-auto` a `validate` para no modificar el esquema en producción.
-- Si cambias `JWT_SECRET` en caliente, todos los tokens activos dejan de ser válidos.
-- Los perfiles de base de datos (`mysql-dev`, etc.) se configuran en los archivos `application-{perfil}.properties`.
+| Campo | Valor |
+|---|---|
+| Runtime | Java 21 |
+| Build command | `./mvnw clean package -DskipTests` |
+| Start command | `java -jar target/*.jar` |
+| Variables de entorno | Configurar en el panel Environment de Render |
+
+---
+
+## Convenciones de código
+
+- **Entidades:** PascalCase con anotaciones JPA (`@Entity`, `@Table`, `@Column`)
+- **Services:** sufijo `Service`, anotados con `@Service @Transactional`
+- **Controllers:** sufijo `Controller`, anotados con `@RestController @RequestMapping`
+- **DTOs:** sufijo `Request` (entrada) o `Response` (salida)
+- **Javadoc:** en métodos públicos de services y controllers
+
+---
+
+## Licencia
+
+Proyecto académico — SENA 2026. Todos los derechos reservados.
