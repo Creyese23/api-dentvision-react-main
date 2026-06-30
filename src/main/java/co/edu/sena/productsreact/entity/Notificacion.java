@@ -4,6 +4,8 @@ package co.edu.sena.productsreact.entity;
 import jakarta.persistence.*;
 // Importaciones de Lombok para evitar código boilerplate (getters, setters, constructores, builder)
 import lombok.*;
+// Evita bucle infinito de serialización Jackson: Notificacion→User→PerfilUsuario→User→...
+import com.fasterxml.jackson.annotation.JsonIgnore;
 // Anotación de auditoría de Spring Data para registrar la fecha de creación automáticamente
 import org.springframework.data.annotation.CreatedDate;
 // Listener que activa la auditoría automática de fechas al guardar la entidad
@@ -40,6 +42,8 @@ public class Notificacion {
     @ManyToOne(fetch = FetchType.LAZY)
     // La columna de unión en la tabla notificaciones es "id_usuario", no puede ser nula
     @JoinColumn(name = "id_usuario", nullable = false)
+    // Excluye el objeto User completo del JSON: evita bucle infinito User→PerfilUsuario→User→...
+    @JsonIgnore
     private User usuario;
 
     // Tipo de notificación; identifica la categoría del evento (ej: "LOGIN", "CITA", "PAGO")
