@@ -337,6 +337,28 @@ public class AuthService {
         PerfilUsuario perfil = perfilRepository.findById(user.getId()).orElse(null);
         // Revoca sesiones anteriores del usuario para mantener una sola sesión activa
         refreshTokenRepository.revokeAllByUsuarioId(user.getId());
+
+        // Notificación in-app de inicio de sesión OAuth (Google / GitHub)
+        notificacionRepository.save(Notificacion.builder()
+                .usuario(user)
+                .tipo("LOGIN")
+                .mensaje("Nuevo inicio de sesión en tu cuenta DentVision el " +
+                    LocalDateTime.now(ZoneId.of("America/Bogota"))
+                        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm")))
+                .build());
+
+        // Alerta de seguridad por email (no interrumpe el flujo si falla)
+        try {
+            emailService.sendLoginAlert(
+                user.getEmail(),
+                perfil != null && perfil.getNombres() != null && !perfil.getNombres().isBlank()
+                    ? perfil.getNombres()
+                    : user.getEmail()
+            );
+        } catch (Exception ignored) {
+            log.warn("[AuthService] No se pudo enviar alerta de login OAuth a {}: {}", user.getEmail(), ignored.getMessage());
+        }
+
         // Genera y devuelve los tokens JWT para el usuario OAuth
         return buildAuthResponse(user, perfil);
     }
