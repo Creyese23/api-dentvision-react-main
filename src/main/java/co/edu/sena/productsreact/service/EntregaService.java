@@ -4,17 +4,21 @@ package co.edu.sena.productsreact.service;
 import co.edu.sena.productsreact.dto.entrega.EntregaResponse; // DTO con los datos de la entrega que se devuelven al cliente
 
 // Entidades JPA que representan tablas en la BD
-import co.edu.sena.productsreact.entity.Entrega;  // Entidad que representa la entrega de un trabajo de laboratorio al paciente
-import co.edu.sena.productsreact.entity.Paciente; // Entidad del paciente, necesaria para filtrar entregas por paciente
-import co.edu.sena.productsreact.entity.User;     // Entidad del usuario autenticado
+import co.edu.sena.productsreact.entity.Entrega;       // Entidad que representa la entrega de un trabajo de laboratorio al paciente
+import co.edu.sena.productsreact.entity.Notificacion;  // Entidad de notificación in-app
+import co.edu.sena.productsreact.entity.Paciente;      // Entidad del paciente, necesaria para filtrar entregas por paciente
+import co.edu.sena.productsreact.entity.User;          // Entidad del usuario autenticado
 
 // Excepción cuando no se encuentra un recurso solicitado
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 
 // Repositorios para acceder a las tablas de la BD
-import co.edu.sena.productsreact.repository.EntregaRepository;   // Repositorio para gestionar entregas
-import co.edu.sena.productsreact.repository.PacienteRepository;  // Repositorio para buscar el paciente vinculado al usuario
-import co.edu.sena.productsreact.repository.UserRepository;      // Repositorio para buscar el usuario por email
+import co.edu.sena.productsreact.repository.EntregaRepository;       // Repositorio para gestionar entregas
+import co.edu.sena.productsreact.repository.NotificacionRepository;  // Repositorio para guardar notificaciones in-app
+import co.edu.sena.productsreact.repository.PacienteRepository;      // Repositorio para buscar el paciente vinculado al usuario
+import co.edu.sena.productsreact.repository.UserRepository;          // Repositorio para buscar el usuario por email
+
+import lombok.extern.slf4j.Slf4j;
 
 import lombok.RequiredArgsConstructor; // Genera el constructor con inyección de dependencias
 import org.springframework.stereotype.Service;                    // Marca la clase como servicio de Spring
@@ -26,10 +30,11 @@ import java.util.Optional;      // Contenedor que puede o no tener un valor (evi
 
 // @Service: Spring registra esta clase como componente de lógica de negocio
 @Service
-// @RequiredArgsConstructor: Lombok inyecta los tres repositorios por constructor
+// @RequiredArgsConstructor: Lombok inyecta los repositorios por constructor
 @RequiredArgsConstructor
 // @Transactional(readOnly = true): la mayoría de operaciones aquí son de solo lectura
 @org.springframework.transaction.annotation.Transactional(readOnly = true)
+@Slf4j
 public class EntregaService {
 
     // Repositorio para consultar y actualizar entregas en la BD
@@ -38,6 +43,8 @@ public class EntregaService {
     private final UserRepository userRepository;
     // Repositorio para buscar el registro de paciente vinculado al usuario autenticado
     private final PacienteRepository pacienteRepository;
+    // Repositorio para guardar notificaciones in-app
+    private final NotificacionRepository notificacionRepository;
 
     /**
      * Lista TODAS las entregas del sistema.
@@ -70,7 +77,29 @@ public class EntregaService {
         // Si el estado es ENTREGADO, registra la fecha y hora exacta de la entrega al paciente
         if ("ENTREGADO".equals(estado)) e.setFechaEntrega(LocalDateTime.now());
         // Guarda los cambios y retorna el DTO actualizado
-        return EntregaResponse.from(entregaRepository.save(e));
+        EntregaResponse resp = EntregaResponse.from(entregaRepository.save(e));
+        // Notificación in-app al paciente cuando se entrega
+        if ("ENTREGADO".equals(estado)) {
+            try {
+                // Cadena: Entrega → Orden → Procedimiento → Cita → Paciente → Usuario
+                User userPaciente = e.getOrden() != null
+                        && e.getOrden().getProcedimiento() != null
+                        && e.getOrden().getProcedimiento().getCita() != null
+                        && e.getOrden().getProcedimiento().getCita().getPaciente() != null
+                        ? e.getOrden().getProcedimiento().getCita().getPaciente().getUsuario()
+                        : null;
+                if (userPaciente != null) {
+                    notificacionRepository.save(Notificacion.builder()
+                            .usuario(userPaciente)
+                            .tipo("ENTREGA")
+                            .mensaje("Tu entrega #" + e.getId() + " fue entregada")
+                            .build());
+                }
+            } catch (Exception ex) {
+                log.warn("No se pudo guardar notificación de entrega: {}", ex.getMessage());
+            }
+        }
+        return resp;
     }
 
     /**

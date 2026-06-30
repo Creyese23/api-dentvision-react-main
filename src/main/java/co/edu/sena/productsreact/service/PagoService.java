@@ -13,7 +13,10 @@ import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 
 // Repositorios para acceder a las tablas en la BD
 import co.edu.sena.productsreact.repository.FacturaRepository; // Repositorio para buscar y actualizar facturas
+import co.edu.sena.productsreact.repository.NotificacionRepository; // Repositorio para guardar notificaciones in-app
 import co.edu.sena.productsreact.repository.PagoRepository;    // Repositorio para registrar y consultar pagos
+
+import co.edu.sena.productsreact.entity.Notificacion;
 
 import lombok.RequiredArgsConstructor;        // Genera el constructor con inyección de dependencias
 import lombok.extern.slf4j.Slf4j;            // Genera el objeto "log" para registrar advertencias
@@ -40,6 +43,8 @@ public class PagoService {
     private final FacturaRepository facturaRepository;
     // Servicio para enviar el email de confirmación de pago al paciente
     private final EmailService emailService;
+    // Repositorio para guardar notificaciones in-app
+    private final NotificacionRepository notificacionRepository;
 
     /**
      * Lista todos los pagos registrados para una factura específica.
@@ -95,6 +100,21 @@ public class PagoService {
         } catch (Exception e) {
             // Si el email falla, no interrumpe el registro del pago; solo registra advertencia
             log.warn("No se pudo enviar email de pago: {}", e.getMessage());
+        }
+        // Notificación in-app al paciente
+        try {
+            co.edu.sena.productsreact.entity.User userPaciente = factura.getPaciente() != null
+                    ? factura.getPaciente().getUsuario() : null;
+            if (userPaciente != null) {
+                String montoFmt = String.format("%,.0f", req.valor()).replace(",", ".");
+                notificacionRepository.save(Notificacion.builder()
+                        .usuario(userPaciente)
+                        .tipo("PAGO")
+                        .mensaje("Pago de $" + montoFmt + " registrado exitosamente")
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificación de pago: {}", e.getMessage());
         }
 
         // Retorna el DTO del pago registrado
