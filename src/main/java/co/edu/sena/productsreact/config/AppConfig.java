@@ -34,7 +34,7 @@ public class AppConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         // Obtiene el AuthenticationManager ya configurado por Spring Security
-        // Spring lo configura automáticamente usando el CustomUserDetailsService y el PasswordEncoder
+        // Spring lo configura automáticamente usando el CustomUserDetailsService y el PasswordEncoder.
         return config.getAuthenticationManager();
     }
 }
