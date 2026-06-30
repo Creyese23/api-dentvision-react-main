@@ -9,6 +9,7 @@ import co.edu.sena.productsreact.dto.insumo.MovimientoRequest;  // DTO con los d
 import co.edu.sena.productsreact.entity.Empleado;              // Entidad del empleado responsable del movimiento de inventario
 import co.edu.sena.productsreact.entity.Insumo;                // Entidad del insumo (material dental como guantes, resina, etc.)
 import co.edu.sena.productsreact.entity.MovimientoInventario;  // Entidad que registra cada entrada/salida del inventario
+import co.edu.sena.productsreact.entity.Notificacion;          // Entidad de notificación in-app
 
 // Excepción cuando no se encuentra el recurso solicitado
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;
@@ -17,28 +18,29 @@ import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 import co.edu.sena.productsreact.repository.EmpleadoRepository;              // Repositorio para buscar el empleado responsable del movimiento
 import co.edu.sena.productsreact.repository.InsumoRepository;                // Repositorio para gestionar insumos
 import co.edu.sena.productsreact.repository.MovimientoInventarioRepository;  // Repositorio para registrar historial de movimientos
+import co.edu.sena.productsreact.repository.NotificacionRepository;          // Repositorio para guardar notificaciones in-app
+import co.edu.sena.productsreact.repository.UserRepository;                  // Repositorio para buscar administradores
 
-import lombok.RequiredArgsConstructor; // Genera el constructor con inyección de dependencias
-import org.springframework.stereotype.Service;                    // Marca la clase como servicio de Spring
-import org.springframework.transaction.annotation.Transactional; // Para manejar transacciones de escritura
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime; // Para registrar la fecha de eliminación lógica
-import java.util.List;          // Colección de elementos
+import java.time.LocalDateTime;
+import java.util.List;
 
 // @Service: Spring registra esta clase como componente de lógica de negocio
 @Service
-// @RequiredArgsConstructor: Lombok inyecta los tres repositorios por constructor
+@Slf4j
 @RequiredArgsConstructor
-// @Transactional(readOnly = true): las consultas son de solo lectura por defecto
 @org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class InsumoService {
 
-    // Repositorio para consultar y persistir insumos en la BD
     private final InsumoRepository insumoRepository;
-    // Repositorio para guardar el historial de entradas y salidas del inventario
     private final MovimientoInventarioRepository movimientoRepository;
-    // Repositorio para buscar al empleado que realizó el movimiento de inventario (opcional)
     private final EmpleadoRepository empleadoRepository;
+    private final NotificacionRepository notificacionRepository;
+    private final UserRepository userRepository;
 
     /**
      * Lista todos los insumos activos y no eliminados del inventario.
@@ -100,10 +102,11 @@ public class InsumoService {
         i.setUnidadMedida(req.unidadMedida());             // Actualiza la unidad de medida
         // Solo actualiza el stock actual si se envió un valor (evita borrar el stock accidentalmente)
         if (req.stockActual() != null) i.setStockActual(req.stockActual());
-        // Solo actualiza el stock mínimo si se envió un valor; si no, mantiene el actual
         i.setStockMinimo(req.stockMinimo() != null ? req.stockMinimo() : i.getStockMinimo());
-        i.setPrecioUnitario(req.precioUnitario());         // Actualiza el precio unitario
-        return InsumoResponse.from(insumoRepository.save(i)); // Guarda los cambios y retorna el DTO
+        i.setPrecioUnitario(req.precioUnitario());
+        InsumoResponse resultado = InsumoResponse.from(insumoRepository.save(i));
+        notificarBajoStockSiAplica(i);
+        return resultado;
     }
 
     @Transactional // Esta operación actualiza el stock y registra el movimiento en la BD
@@ -144,8 +147,11 @@ public class InsumoService {
                 .cantidad(req.cantidad())   // Cantidad que entró o salió
                 .tipoMovimiento(tipo)       // "ENTRADA" o "SALIDA"
                 .build();
-        movimientoRepository.save(mov); // Persiste el registro de movimiento en el historial
-        return InsumoResponse.from(insumoRepository.save(insumo)); // Guarda el nuevo stock y retorna el DTO
+        movimientoRepository.save(mov);
+        InsumoResponse resultado = InsumoResponse.from(insumoRepository.save(insumo));
+        // Solo alerta en salidas: una entrada no genera alerta de bajo stock
+        if ("SALIDA".equals(tipo)) notificarBajoStockSiAplica(insumo);
+        return resultado;
     }
 
     @Transactional // Esta operación hace eliminación lógica del insumo
@@ -162,10 +168,40 @@ public class InsumoService {
 
     /**
      * Método auxiliar privado: busca un insumo por ID y lanza excepción si no existe.
-     * Se reutiliza en todos los métodos que necesitan verificar que el insumo exista.
      */
     private Insumo getOrThrow(Long id) {
         return insumoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Insumo " + id + " no encontrado"));
+    }
+
+    /**
+     * Notifica a todos los administradores activos cuando el stock de un insumo
+     * cae por debajo o igual al mínimo establecido.
+     * Se llama tras cualquier operación que modifique el stockActual.
+     */
+    private void notificarBajoStockSiAplica(Insumo insumo) {
+        // Solo alerta si el umbral mínimo está definido (> 0) y el stock lo alcanzó o superó a la baja
+        if (insumo.getStockMinimo() == null || insumo.getStockMinimo() <= 0) return;
+        if (insumo.getStockActual() > insumo.getStockMinimo()) return;
+        try {
+            String mensaje = String.format(
+                "⚠️ Stock bajo: '%s' tiene %d unidades (mínimo configurado: %d). Considera reabastecer.",
+                insumo.getNombre(), insumo.getStockActual(), insumo.getStockMinimo()
+            );
+            // Envía la alerta a cada administrador activo del sistema
+            userRepository.findByRolNombreRolAndEstadoTrue("ROLE_ADMIN").forEach(admin -> {
+                try {
+                    notificacionRepository.save(Notificacion.builder()
+                        .usuario(admin)
+                        .tipo("ALERTA")
+                        .mensaje(mensaje)
+                        .build());
+                } catch (Exception e) {
+                    log.warn("[InsumoService] No se pudo notificar stock bajo al admin {}: {}", admin.getEmail(), e.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            log.warn("[InsumoService] Error al notificar stock bajo de '{}': {}", insumo.getNombre(), e.getMessage());
+        }
     }
 }
