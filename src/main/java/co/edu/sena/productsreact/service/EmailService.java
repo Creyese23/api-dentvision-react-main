@@ -329,6 +329,50 @@ public class EmailService {
         log.info("Notificación de pago enviada a {}", toEmail);
     }
 
+    /**
+     * Envía un email de alerta de seguridad cuando se detecta un nuevo inicio de sesión en la cuenta.
+     * El objetivo es que el usuario legítimo sepa que alguien accedió a su cuenta y pueda actuar
+     * inmediatamente si no fue él (cambiando la contraseña o contactando soporte).
+     *
+     * @param toEmail Email del destinatario (el usuario que inició sesión)
+     * @param nombre  Nombre visible del usuario para personalizar el saludo del email
+     */
+    public void sendLoginAlert(String toEmail, String nombre) {
+        // Si ningún canal de email está disponible, registra la advertencia y sale sin lanzar excepción.
+        // Un fallo aquí no debe interrumpir el flujo de autenticación del usuario.
+        if (!canSendEmail()) {
+            log.warn("[EmailService] Canal de email no configurado — alerta de login no enviada a {}", toEmail);
+            return;
+        }
+        // Captura la fecha y hora actual en la zona horaria de Colombia (UTC-5 / America/Bogota)
+        // para que el mensaje sea comprensible para el usuario final
+        String fechaHora = java.time.LocalDateTime.now(java.time.ZoneId.of("America/Bogota"))
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm"));
+
+        // Cuerpo del email con información clara sobre el evento de seguridad detectado
+        String cuerpo = String.format(
+            "Hola %s, detectamos un <strong>nuevo inicio de sesión</strong> en tu cuenta DentVision.<br><br>"
+            + "<b>&#128197; Fecha y hora:</b> %s (hora Colombia)<br><br>"  // Emoji de calendario + fecha/hora formateada
+            + "Si fuiste tú, puedes ignorar este mensaje. "
+            + "Si <strong>no reconoces este acceso</strong>, cambia tu contraseña de inmediato.",
+            nombre, fechaHora
+        );
+
+        // Envía el email usando el canal disponible (Brevo → Resend → Gmail API → SMTP)
+        send(toEmail,
+            "DentVision — Nuevo inicio de sesión detectado 🔐", // Asunto con emoji de candado para destacar la alerta
+            buildHtml(
+                "Alerta de seguridad – DentVision",          // Preheader de vista previa en el cliente de correo
+                "Nuevo inicio de sesión en tu cuenta",       // Encabezado principal del email
+                cuerpo,                                       // Cuerpo personalizado con fecha/hora
+                frontendUrl + "/forgot-password",             // Enlace al formulario de cambio de contraseña
+                "Cambiar mi contraseña",                      // Texto del botón de acción de emergencia
+                "Si reconoces este acceso, no necesitas hacer nada. "
+                + "Este es un aviso automático de seguridad de DentVision."
+            ));
+        log.info("[EmailService] Alerta de login enviada a {}", toEmail);
+    }
+
     // Notifica al usuario que su contraseña fue cambiada exitosamente (o permite recuperar acceso si no fue él)
     public void sendPasswordChangedEmail(String toEmail) {
         if (!canSendEmail()) {
