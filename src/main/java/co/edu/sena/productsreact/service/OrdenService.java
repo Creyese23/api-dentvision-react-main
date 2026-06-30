@@ -6,6 +6,7 @@ import co.edu.sena.productsreact.dto.orden.OrdenResponse; // DTO con los datos d
 
 // Entidades JPA que representan tablas en la base de datos
 import co.edu.sena.productsreact.entity.Entrega;       // Entidad de la entrega asociada a cada orden
+import co.edu.sena.productsreact.entity.Notificacion;  // Entidad de notificación in-app
 import co.edu.sena.productsreact.entity.Orden;         // Entidad de la orden de trabajo (trabajo a realizar al paciente)
 import co.edu.sena.productsreact.entity.Procedimiento; // Entidad del procedimiento al que pertenece la orden
 
@@ -14,8 +15,12 @@ import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 
 // Repositorios para acceder a las tablas en la BD
 import co.edu.sena.productsreact.repository.EntregaRepository;      // Repositorio para gestionar entregas
+import co.edu.sena.productsreact.repository.NotificacionRepository; // Repositorio para guardar notificaciones in-app
 import co.edu.sena.productsreact.repository.OrdenRepository;        // Repositorio para gestionar órdenes
 import co.edu.sena.productsreact.repository.ProcedimientoRepository; // Repositorio para verificar el procedimiento padre
+import co.edu.sena.productsreact.repository.UserRepository;         // Repositorio para buscar usuarios por rol
+
+import lombok.extern.slf4j.Slf4j;
 
 import lombok.RequiredArgsConstructor; // Genera el constructor con inyección de dependencias
 import org.springframework.stereotype.Service;                    // Marca la clase como servicio de Spring
@@ -26,10 +31,11 @@ import java.util.List;          // Colección de elementos
 
 // @Service: Spring registra esta clase como componente de lógica de negocio
 @Service
-// @RequiredArgsConstructor: Lombok inyecta los tres repositorios por constructor
+// @RequiredArgsConstructor: Lombok inyecta los repositorios por constructor
 @RequiredArgsConstructor
 // @Transactional(readOnly = true): las operaciones de consulta no modifican la BD
 @org.springframework.transaction.annotation.Transactional(readOnly = true)
+@Slf4j
 public class OrdenService {
 
     // Repositorio principal para consultar y persistir órdenes de trabajo en la BD
@@ -38,6 +44,10 @@ public class OrdenService {
     private final ProcedimientoRepository procedimientoRepository;
     // Repositorio para crear y actualizar la entrega asociada a cada orden
     private final EntregaRepository entregaRepository;
+    // Repositorio para guardar notificaciones in-app
+    private final NotificacionRepository notificacionRepository;
+    // Repositorio para obtener los técnicos a notificar
+    private final UserRepository userRepository;
 
     /**
      * Lista todas las órdenes de trabajo que tienen un estado específico.
@@ -87,6 +97,24 @@ public class OrdenService {
         // Cada orden tiene exactamente una entrega que se actualiza cuando el trabajo esté listo
         Entrega entrega = Entrega.builder().orden(saved).estado("PENDIENTE").build();
         entregaRepository.save(entrega); // Guarda la entrega en la BD
+
+        // Notificaciones in-app a todos los técnicos activos
+        try {
+            final Long ordenId = saved.getId();
+            userRepository.findByRolNombreRolAndEstadoTrue("ROLE_TECNICO").forEach(tecnico -> {
+                try {
+                    notificacionRepository.save(Notificacion.builder()
+                            .usuario(tecnico)
+                            .tipo("ORDEN")
+                            .mensaje("Nueva orden de laboratorio #" + ordenId + " asignada")
+                            .build());
+                } catch (Exception ex) {
+                    log.warn("No se pudo guardar notificación de orden para técnico {}: {}", tecnico.getId(), ex.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificaciones de nueva orden: {}", e.getMessage());
+        }
 
         // Retorna el DTO de la orden creada
         return OrdenResponse.from(saved);

@@ -6,6 +6,7 @@ import co.edu.sena.productsreact.dto.usuario.UsuarioResponse;      // DTO con lo
 
 // Importaciones de entidades JPA que representan tablas en la base de datos
 import co.edu.sena.productsreact.entity.Empleado;       // Entidad que representa a un empleado de la clínica
+import co.edu.sena.productsreact.entity.Notificacion;   // Entidad de notificación in-app
 import co.edu.sena.productsreact.entity.Paciente;       // Entidad que representa a un paciente
 import co.edu.sena.productsreact.entity.PerfilUsuario;  // Entidad con los datos personales del usuario (nombre, teléfono, etc.)
 import co.edu.sena.productsreact.entity.Rol;            // Entidad que representa un rol del sistema (ADMIN, PACIENTE, EMPLEADO, etc.)
@@ -17,11 +18,14 @@ import co.edu.sena.productsreact.exception.ResourceNotFoundException;  // Se lan
 
 // Repositorios para acceder a cada tabla de la base de datos
 import co.edu.sena.productsreact.repository.EmpleadoRepository;       // Consultas sobre la tabla de empleados
+import co.edu.sena.productsreact.repository.NotificacionRepository;   // Repositorio para guardar notificaciones in-app
 import co.edu.sena.productsreact.repository.PacienteRepository;       // Consultas sobre la tabla de pacientes
 import co.edu.sena.productsreact.repository.PerfilUsuarioRepository;  // Consultas sobre la tabla de perfiles de usuario
 import co.edu.sena.productsreact.repository.RefreshTokenRepository;   // Consultas sobre la tabla de refresh tokens (sesiones activas)
 import co.edu.sena.productsreact.repository.RolRepository;            // Consultas sobre la tabla de roles
 import co.edu.sena.productsreact.repository.UserRepository;           // Consultas sobre la tabla de usuarios
+
+import lombok.extern.slf4j.Slf4j;
 
 import lombok.RequiredArgsConstructor; // Genera el constructor con todos los campos final automáticamente
 import org.springframework.security.crypto.password.PasswordEncoder; // Interfaz para cifrar y verificar contraseñas (BCrypt)
@@ -37,6 +41,7 @@ import java.util.List;          // Colección de elementos
 @RequiredArgsConstructor
 // @Transactional(readOnly = true): por defecto todas las operaciones solo leen la BD (mejor rendimiento)
 @Transactional(readOnly = true)
+@Slf4j
 public class UsuarioService {
 
     // Repositorio principal para buscar, crear y actualizar usuarios en la BD
@@ -53,6 +58,8 @@ public class UsuarioService {
     private final RefreshTokenRepository refreshTokenRepository;
     // Codificador de contraseñas (BCrypt): cifra la contraseña antes de guardarla en la BD
     private final PasswordEncoder passwordEncoder;
+    // Repositorio para guardar notificaciones in-app
+    private final NotificacionRepository notificacionRepository;
 
     /**
      * Devuelve la lista de todos los usuarios activos del sistema.
@@ -180,6 +187,25 @@ public class UsuarioService {
                 .tipoIdentificacion("").identificacion("") // Tipo y número de documento vacíos
                 .telefono("").direccion("") // Datos de contacto vacíos
                 .build());
+
+        // Notificaciones in-app a todos los administradores
+        try {
+            final String emailNuevo = req.email();
+            final String rolNuevo = req.rol();
+            userRepository.findByRolNombreRolAndEstadoTrue("ROLE_ADMIN").forEach(admin -> {
+                try {
+                    notificacionRepository.save(Notificacion.builder()
+                            .usuario(admin)
+                            .tipo("INFO")
+                            .mensaje("Nuevo usuario registrado: " + emailNuevo + " (" + rolNuevo + ")")
+                            .build());
+                } catch (Exception ex) {
+                    log.warn("No se pudo guardar notificación de nuevo usuario para admin {}: {}", admin.getId(), ex.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificaciones de nuevo usuario: {}", e.getMessage());
+        }
 
         // Retorna el DTO con los datos del usuario recién creado
         return UsuarioResponse.from(user);

@@ -14,6 +14,8 @@ import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 // Importación comodín de todos los repositorios del paquete
 import co.edu.sena.productsreact.repository.*;
 
+import co.edu.sena.productsreact.entity.Notificacion;
+
 import lombok.RequiredArgsConstructor;        // Genera el constructor con inyección de dependencias
 import lombok.extern.slf4j.Slf4j;            // Genera el objeto "log" para registrar mensajes en el servidor
 import org.springframework.context.annotation.Lazy; // Para romper dependencias circulares (FacturaService <-> ProcedimientoService)
@@ -54,6 +56,8 @@ public class ProcedimientoService {
     // @Lazy rompe la dependencia circular: FacturaService depende de ProcedimientoService
     // y ProcedimientoService depende de FacturaService; @Lazy retrasa la inicialización de uno de ellos
     @Lazy private final FacturaService facturaService;
+    // Repositorio para guardar notificaciones in-app
+    private final NotificacionRepository notificacionRepository;
 
     /**
      * Lista el historial de procedimientos del paciente autenticado.
@@ -199,6 +203,20 @@ public class ProcedimientoService {
             if (todosCompletos) {
                 // Si todos los procedimientos de la cita están completos, genera automáticamente la factura
                 facturaService.crearDesdeCita(citaId);
+            }
+            // Notificación in-app al paciente: procedimiento completado
+            try {
+                User userPaciente = p.getCita() != null && p.getCita().getPaciente() != null
+                        ? p.getCita().getPaciente().getUsuario() : null;
+                if (userPaciente != null) {
+                    notificacionRepository.save(Notificacion.builder()
+                            .usuario(userPaciente)
+                            .tipo("PROCEDIMIENTO")
+                            .mensaje("Tu procedimiento '" + p.getNombre() + "' ha sido completado")
+                            .build());
+                }
+            } catch (Exception e) {
+                log.warn("No se pudo guardar notificación de procedimiento completado: {}", e.getMessage());
             }
         }
 

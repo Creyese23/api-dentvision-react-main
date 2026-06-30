@@ -53,6 +53,8 @@ public class FacturaService {
     private final ProcedimientoRepository procedimientoRepository;
     // Servicio para enviar el email de notificación de factura al paciente
     private final EmailService emailService;
+    // Repositorio para guardar notificaciones in-app
+    private final NotificacionRepository notificacionRepository;
 
     /**
      * Lista todas las facturas de un paciente específico que no han sido eliminadas.
@@ -96,7 +98,21 @@ public class FacturaService {
                 .total(BigDecimal.ZERO)              // Total inicial en cero; se recalculará al agregar detalles
                 .estado("PENDIENTE")                 // Estado inicial: pendiente de pago
                 .build();
-        return FacturaResponse.from(facturaRepository.save(factura)); // Guarda y retorna el DTO
+        FacturaResponse facturaResp = FacturaResponse.from(facturaRepository.save(factura)); // Guarda y retorna el DTO
+        // Notificación in-app al paciente
+        try {
+            User userPaciente = paciente.getUsuario();
+            if (userPaciente != null) {
+                notificacionRepository.save(Notificacion.builder()
+                        .usuario(userPaciente)
+                        .tipo("FACTURA")
+                        .mensaje("Nueva factura generada por $0 — consulta tus facturas")
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificación de factura: {}", e.getMessage());
+        }
+        return facturaResp;
     }
 
     @Transactional // Esta operación agrega un ítem a la factura y recalcula el total
@@ -220,6 +236,20 @@ public class FacturaService {
         } catch (Exception e) {
             // Si el email falla, no interrumpe la generación de la factura
             log.warn("No se pudo enviar email de factura: {}", e.getMessage());
+        }
+        // Notificación in-app al paciente
+        try {
+            User userPaciente = cita.getPaciente() != null ? cita.getPaciente().getUsuario() : null;
+            if (userPaciente != null) {
+                String totalFmt = String.format("%,.0f", total).replace(",", ".");
+                notificacionRepository.save(Notificacion.builder()
+                        .usuario(userPaciente)
+                        .tipo("FACTURA")
+                        .mensaje("Nueva factura generada por $" + totalFmt + " — consulta tus facturas")
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificación de factura desde cita: {}", e.getMessage());
         }
         return resp; // Retorna el DTO de la factura recién creada
     }

@@ -8,6 +8,7 @@ import co.edu.sena.productsreact.dto.cita.CitaResponse;       // DTO con los dat
 // Entidades JPA que representan tablas en la BD
 import co.edu.sena.productsreact.entity.Cita;     // Entidad de la cita odontológica
 import co.edu.sena.productsreact.entity.Empleado; // Entidad del empleado que atiende la cita (odontólogo)
+import co.edu.sena.productsreact.entity.Notificacion; // Entidad de notificación in-app
 import co.edu.sena.productsreact.entity.Paciente; // Entidad del paciente que asiste a la cita
 import co.edu.sena.productsreact.entity.User;     // Entidad del usuario autenticado
 
@@ -17,6 +18,7 @@ import co.edu.sena.productsreact.exception.ResourceNotFoundException;
 // Repositorios para acceder a las tablas en la BD
 import co.edu.sena.productsreact.repository.CitaRepository;      // Repositorio para gestionar citas
 import co.edu.sena.productsreact.repository.EmpleadoRepository;  // Repositorio para buscar al odontólogo
+import co.edu.sena.productsreact.repository.NotificacionRepository; // Repositorio para guardar notificaciones in-app
 import co.edu.sena.productsreact.repository.PacienteRepository;  // Repositorio para buscar al paciente
 import co.edu.sena.productsreact.repository.UserRepository;      // Repositorio para buscar el usuario por email
 
@@ -42,6 +44,8 @@ public class CitaService {
 
     // Formateador de fecha y hora para los emails de confirmación (ej: "28/06/2026 10:30")
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    // Formateador para mensajes de notificación in-app
+    private static final DateTimeFormatter FMT_NOTIF = DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm");
 
     // Lista de horarios laborales disponibles para agendar citas
     // Horario de mañana: 8:00 a 11:30 (cada 30 minutos) y de tarde: 14:00 a 17:00
@@ -60,6 +64,8 @@ public class CitaService {
     private final UserRepository userRepository;
     // Servicio de email para enviar confirmaciones y cancelaciones al paciente
     private final EmailService emailService;
+    // Repositorio para guardar notificaciones in-app
+    private final NotificacionRepository notificacionRepository;
 
     /**
      * Lista todas las citas del paciente autenticado (el que está logueado).
@@ -221,6 +227,33 @@ public class CitaService {
         } catch (Exception e) {
             log.warn("No se pudo enviar email de cancelación: {}", e.getMessage());
         }
+        // Notificaciones in-app
+        try {
+            String fechaFmt = cita.getFechaHora().format(FMT_NOTIF);
+            User userOdontologo = cita.getOdontologo() != null ? cita.getOdontologo().getUsuario() : null;
+            if (userOdontologo != null) {
+                notificacionRepository.save(Notificacion.builder()
+                        .usuario(userOdontologo)
+                        .tipo("CITA")
+                        .mensaje("La cita del " + fechaFmt + " fue cancelada por el paciente")
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificación de cancelación al odontólogo: {}", e.getMessage());
+        }
+        try {
+            String fechaFmt = cita.getFechaHora().format(FMT_NOTIF);
+            User userPaciente = paciente.getUsuario();
+            if (userPaciente != null) {
+                notificacionRepository.save(Notificacion.builder()
+                        .usuario(userPaciente)
+                        .tipo("CITA")
+                        .mensaje("Tu cita del " + fechaFmt + " ha sido cancelada")
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificación de cancelación al paciente: {}", e.getMessage());
+        }
         return resp;
     }
 
@@ -282,7 +315,38 @@ public class CitaService {
                 .paciente(paciente).odontologo(odontologo)
                 .fechaHora(req.fechaHora()).motivo(req.motivo())
                 .estado("PROGRAMADA").build();
-        return CitaResponse.from(citaRepository.save(cita));
+        CitaResponse resp = CitaResponse.from(citaRepository.save(cita));
+
+        // Notificaciones in-app al paciente y al odontólogo
+        try {
+            String fechaFmt = req.fechaHora().format(FMT_NOTIF);
+            User userPaciente = paciente.getUsuario();
+            if (userPaciente != null) {
+                notificacionRepository.save(Notificacion.builder()
+                        .usuario(userPaciente)
+                        .tipo("CITA")
+                        .mensaje("Nueva cita agendada el " + fechaFmt)
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificación de cita al paciente: {}", e.getMessage());
+        }
+        try {
+            User userOdontologo = odontologo.getUsuario();
+            String nombrePaciente = paciente.getUsuario() != null && paciente.getUsuario().getPerfil() != null
+                    ? paciente.getUsuario().getPerfil().getNombres() : "paciente";
+            if (userOdontologo != null) {
+                notificacionRepository.save(Notificacion.builder()
+                        .usuario(userOdontologo)
+                        .tipo("CITA")
+                        .mensaje("Nueva cita asignada: paciente " + nombrePaciente + " el " + req.fechaHora().format(FMT_NOTIF))
+                        .build());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificación de cita al odontólogo: {}", e.getMessage());
+        }
+
+        return resp;
     }
 
     @Transactional // Esta operación actualiza el estado de la cita y puede enviar emails
@@ -312,6 +376,28 @@ public class CitaService {
         } catch (Exception e) {
             // Si el email falla, no se interrumpe el cambio de estado; se registra como advertencia
             log.warn("No se pudo enviar email de cambio de estado de cita: {}", e.getMessage());
+        }
+        // Notificaciones in-app al paciente según el nuevo estado
+        try {
+            User userPaciente = cita.getPaciente() != null ? cita.getPaciente().getUsuario() : null;
+            if (userPaciente != null) {
+                String fechaFmt = cita.getFechaHora().format(FMT_NOTIF);
+                if ("CONFIRMADA".equals(estado)) {
+                    notificacionRepository.save(Notificacion.builder()
+                            .usuario(userPaciente)
+                            .tipo("CITA")
+                            .mensaje("Tu cita del " + fechaFmt + " ha sido confirmada")
+                            .build());
+                } else if ("CANCELADA".equals(estado)) {
+                    notificacionRepository.save(Notificacion.builder()
+                            .usuario(userPaciente)
+                            .tipo("CITA")
+                            .mensaje("Tu cita del " + fechaFmt + " fue cancelada")
+                            .build());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo guardar notificación de cambio de estado de cita: {}", e.getMessage());
         }
         return resp;
     }
