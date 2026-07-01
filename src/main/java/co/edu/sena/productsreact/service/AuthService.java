@@ -7,7 +7,6 @@ import co.edu.sena.productsreact.dto.auth.RegisterRequest;  // Datos de entrada 
 import co.edu.sena.productsreact.dto.auth.UserDto;          // Objeto simplificado con los datos públicos del usuario
 
 // Importaciones de las entidades JPA que se mapean a tablas de la base de datos
-import co.edu.sena.productsreact.entity.Notificacion;       // Entidad que representa una notificación en-app para el usuario
 import co.edu.sena.productsreact.entity.Paciente;           // Entidad que representa al paciente vinculado al usuario
 import co.edu.sena.productsreact.entity.PerfilUsuario;      // Entidad con los datos personales del usuario (nombres, teléfono, etc.)
 import co.edu.sena.productsreact.entity.RefreshToken;       // Entidad que representa el token de renovación de sesión
@@ -19,7 +18,6 @@ import co.edu.sena.productsreact.exception.DuplicateResourceException;  // Se la
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;    // Se lanza cuando no se encuentra un recurso solicitado
 
 // Importaciones de los repositorios JPA para acceder a la base de datos
-import co.edu.sena.productsreact.repository.NotificacionRepository;    // Repositorio para guardar notificaciones de eventos del usuario
 import co.edu.sena.productsreact.repository.PacienteRepository;        // Repositorio para operaciones CRUD sobre la tabla Paciente
 import co.edu.sena.productsreact.repository.PerfilUsuarioRepository;   // Repositorio para operaciones CRUD sobre la tabla PerfilUsuario
 import co.edu.sena.productsreact.repository.RefreshTokenRepository;    // Repositorio para gestionar los tokens de renovación
@@ -53,8 +51,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 // Clases estándar de Java para manejo de fechas y generación de identificadores únicos
 import java.time.LocalDateTime;        // Representa fecha y hora sin zona horaria
-import java.time.ZoneId;               // Permite especificar zonas horarias para conversión de fechas
-import java.time.format.DateTimeFormatter; // Formatea fechas y horas a texto legible
 import java.util.UUID;                 // Genera identificadores únicos universales (tokens aleatorios)
 
 // @Service: indica a Spring que esta clase es un bean de la capa de servicio; se puede inyectar en controladores
@@ -75,8 +71,6 @@ public class AuthService {
     private final PacienteRepository pacienteRepository;
     // Repositorio para guardar, buscar y revocar los refresh tokens
     private final RefreshTokenRepository refreshTokenRepository;
-    // Repositorio para guardar notificaciones in-app generadas al iniciar sesión u otros eventos
-    private final NotificacionRepository notificacionRepository;
     // Servicio de Spring Security que cifra contraseñas con BCrypt antes de guardarlas
     private final PasswordEncoder passwordEncoder;
     // Servicio propio que genera y valida los JWT (JSON Web Tokens) de acceso
@@ -239,32 +233,6 @@ public class AuthService {
         // (buena práctica de seguridad: al iniciar sesión, las sesiones anteriores quedan inválidas)
         refreshTokenRepository.revokeAllByUsuarioId(user.getId());
 
-        // ── Notificación in-app de inicio de sesión ──────────────────────────────
-        // Crea y persiste una notificación en la tabla "notificaciones" para informar al usuario
-        // del nuevo acceso a su cuenta. El mensaje incluye la fecha y hora en zona Colombia (UTC-5).
-        notificacionRepository.save(Notificacion.builder()
-                .usuario(user)
-                .tipo("LOGIN")
-                .mensaje("Nuevo inicio de sesión en tu cuenta DentVision el " +
-                    LocalDateTime.now(ZoneId.of("America/Bogota"))
-                        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm")))
-                .build());
-
-        // ── Alerta de seguridad por email (asíncrona, no bloquea el login) ──────
-        // Si el envío de email falla (canal no configurado, red no disponible, etc.),
-        // se ignora silenciosamente para no interrumpir el flujo de autenticación del usuario.
-        try {
-            emailService.sendLoginAlert(
-                user.getEmail(),
-                perfil != null && perfil.getNombres() != null && !perfil.getNombres().isBlank()
-                    ? perfil.getNombres()
-                    : user.getEmail()
-            );
-        } catch (Exception ignored) {
-            // El fallo del email de alerta no debe impedir el inicio de sesión
-            log.warn("[AuthService] No se pudo enviar alerta de login a {}: {}", user.getEmail(), ignored.getMessage());
-        }
-
         // Genera nuevos tokens JWT (access token + refresh token) y devuelve la respuesta de autenticación
         return buildAuthResponse(user, perfil);
     }
@@ -337,27 +305,6 @@ public class AuthService {
         PerfilUsuario perfil = perfilRepository.findById(user.getId()).orElse(null);
         // Revoca sesiones anteriores del usuario para mantener una sola sesión activa
         refreshTokenRepository.revokeAllByUsuarioId(user.getId());
-
-        // Notificación in-app de inicio de sesión OAuth (Google / GitHub)
-        notificacionRepository.save(Notificacion.builder()
-                .usuario(user)
-                .tipo("LOGIN")
-                .mensaje("Nuevo inicio de sesión en tu cuenta DentVision el " +
-                    LocalDateTime.now(ZoneId.of("America/Bogota"))
-                        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm")))
-                .build());
-
-        // Alerta de seguridad por email (no interrumpe el flujo si falla)
-        try {
-            emailService.sendLoginAlert(
-                user.getEmail(),
-                perfil != null && perfil.getNombres() != null && !perfil.getNombres().isBlank()
-                    ? perfil.getNombres()
-                    : user.getEmail()
-            );
-        } catch (Exception ignored) {
-            log.warn("[AuthService] No se pudo enviar alerta de login OAuth a {}: {}", user.getEmail(), ignored.getMessage());
-        }
 
         // Genera y devuelve los tokens JWT para el usuario OAuth
         return buildAuthResponse(user, perfil);
