@@ -233,7 +233,7 @@ co.edu.sena.productsreact/
 - **CORS:** configurado para permitir el origen del frontend en desarrollo y producción.
 - **Contraseñas:** cifradas con BCrypt antes de almacenar.
 - **OAuth2:** autenticación con Google o GitHub genera JWT propio del sistema.
-- ~~**Alerta de email en cada login:**~~ esta funcionalidad fue eliminada. El inicio de sesión ya no envía ningún email de alerta de seguridad. El evento de login genera únicamente una notificación in-app (tipo LOGIN) visible en la campana de notificaciones del usuario.
+- **Notificación de login:** al iniciar sesión (credenciales o OAuth2), se guarda automáticamente una notificación de tipo `LOGIN` en la tabla `notificaciones`. Esta notificación aparece en la campanita de la interfaz del usuario. No se envía ningún correo electrónico de alerta.
 
 ---
 

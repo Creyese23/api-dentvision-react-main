@@ -7,6 +7,7 @@ import co.edu.sena.productsreact.dto.auth.RegisterRequest;  // Datos de entrada 
 import co.edu.sena.productsreact.dto.auth.UserDto;          // Objeto simplificado con los datos públicos del usuario
 
 // Importaciones de las entidades JPA que se mapean a tablas de la base de datos
+import co.edu.sena.productsreact.entity.Notificacion;        // Entidad para guardar notificaciones en la campanita
 import co.edu.sena.productsreact.entity.Paciente;           // Entidad que representa al paciente vinculado al usuario
 import co.edu.sena.productsreact.entity.PerfilUsuario;      // Entidad con los datos personales del usuario (nombres, teléfono, etc.)
 import co.edu.sena.productsreact.entity.RefreshToken;       // Entidad que representa el token de renovación de sesión
@@ -18,6 +19,7 @@ import co.edu.sena.productsreact.exception.DuplicateResourceException;  // Se la
 import co.edu.sena.productsreact.exception.ResourceNotFoundException;    // Se lanza cuando no se encuentra un recurso solicitado
 
 // Importaciones de los repositorios JPA para acceder a la base de datos
+import co.edu.sena.productsreact.repository.NotificacionRepository;    // Repositorio para guardar notificaciones en la campanita
 import co.edu.sena.productsreact.repository.PacienteRepository;        // Repositorio para operaciones CRUD sobre la tabla Paciente
 import co.edu.sena.productsreact.repository.PerfilUsuarioRepository;   // Repositorio para operaciones CRUD sobre la tabla PerfilUsuario
 import co.edu.sena.productsreact.repository.RefreshTokenRepository;    // Repositorio para gestionar los tokens de renovación
@@ -69,6 +71,8 @@ public class AuthService {
     private final PerfilUsuarioRepository perfilRepository;
     // Repositorio para crear el registro de paciente vinculado al usuario
     private final PacienteRepository pacienteRepository;
+    // Repositorio para guardar notificaciones que aparecen en la campanita del usuario
+    private final NotificacionRepository notificacionRepository;
     // Repositorio para guardar, buscar y revocar los refresh tokens
     private final RefreshTokenRepository refreshTokenRepository;
     // Servicio de Spring Security que cifra contraseñas con BCrypt antes de guardarlas
@@ -233,6 +237,13 @@ public class AuthService {
         // (buena práctica de seguridad: al iniciar sesión, las sesiones anteriores quedan inválidas)
         refreshTokenRepository.revokeAllByUsuarioId(user.getId());
 
+        // Guarda notificación de inicio de sesión para que aparezca en la campanita del usuario
+        notificacionRepository.save(Notificacion.builder()
+                .usuario(user)
+                .tipo("LOGIN")
+                .mensaje("Inicio de sesión exitoso desde tu cuenta.")
+                .build());
+
         // Genera nuevos tokens JWT (access token + refresh token) y devuelve la respuesta de autenticación
         return buildAuthResponse(user, perfil);
     }
@@ -305,6 +316,13 @@ public class AuthService {
         PerfilUsuario perfil = perfilRepository.findById(user.getId()).orElse(null);
         // Revoca sesiones anteriores del usuario para mantener una sola sesión activa
         refreshTokenRepository.revokeAllByUsuarioId(user.getId());
+
+        // Guarda notificación de inicio de sesión para que aparezca en la campanita del usuario
+        notificacionRepository.save(Notificacion.builder()
+                .usuario(user)
+                .tipo("LOGIN")
+                .mensaje("Inicio de sesión exitoso desde tu cuenta.")
+                .build());
 
         // Genera y devuelve los tokens JWT para el usuario OAuth
         return buildAuthResponse(user, perfil);
