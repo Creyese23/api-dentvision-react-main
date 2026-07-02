@@ -92,6 +92,7 @@ co.edu.sena.productsreact/
 | `Conversacion` | Hilo de chat entre paciente y técnico/odontólogo |
 | `Mensaje` | Mensaje individual dentro de una conversación |
 | `RefreshToken` | Token de refresco de sesión con expiración |
+| `Notificacion` | Notificación in-app con tipo, mensaje, leida y creadaEn — vinculada al usuario destinatario |
 
 ---
 
@@ -214,6 +215,14 @@ co.edu.sena.productsreact/
 | POST | `/api/conversaciones/{id}/mensajes` | Enviar mensaje |
 | PATCH | `/api/conversaciones/{id}/cerrar` | Cerrar conversación |
 
+### Notificaciones — `/api/notificaciones`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/notificaciones/mis` | Listar todas las notificaciones del usuario autenticado |
+| GET | `/api/notificaciones/mis/no-leidas` | Listar notificaciones no leídas del usuario autenticado |
+| PATCH | `/api/notificaciones/marcar-todas-leidas` | Marcar todas las notificaciones del usuario como leídas |
+
 ---
 
 ## Seguridad
@@ -224,6 +233,7 @@ co.edu.sena.productsreact/
 - **CORS:** configurado para permitir el origen del frontend en desarrollo y producción.
 - **Contraseñas:** cifradas con BCrypt antes de almacenar.
 - **OAuth2:** autenticación con Google o GitHub genera JWT propio del sistema.
+- ~~**Alerta de email en cada login:**~~ esta funcionalidad fue eliminada. El inicio de sesión ya no envía ningún email de alerta de seguridad. El evento de login genera únicamente una notificación in-app (tipo LOGIN) visible en la campana de notificaciones del usuario.
 
 ---
 
@@ -312,3 +322,7 @@ cp .env.example .env
 ## Licencia
 
 Proyecto académico — SENA 2026. Todos los derechos reservados.
+
+---
+
+*DentVision API v2.0 — SENA 2026*
