@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-public class ProductsReactApiApplication {
+public class DentvisionReactApiApplication {
 
     public static void main(String[] args) {
         loadDotEnv();
@@ -16,7 +16,7 @@ public class ProductsReactApiApplication {
                 && System.getProperty("spring.profiles.active") == null) {
             System.setProperty("spring.profiles.active", envProfile);
         }
-        SpringApplication.run(ProductsReactApiApplication.class, args);
+        SpringApplication.run(DentvisionReactApiApplication.class, args);
     }
 
     private static void loadDotEnv() {
