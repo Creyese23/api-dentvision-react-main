@@ -19,7 +19,7 @@ Instructor: **Jeyson David Zúñiga Gómez**
 | Lombok | — | Reducción de boilerplate (getters, setters, constructores) |
 | MercadoPago SDK | — | Pasarela de pago Colombia |
 | PayPal SDK | — | Pasarela de pago internacional |
-| Brevo / SendGrid | — | Envío de correos electrónicos |
+| Brevo / SMTP | — | Envío de correos electrónicos |
 | MySQL / PostgreSQL | — | Base de datos relacional |
 | Maven | — | Gestión de dependencias y build |
 
@@ -72,7 +72,7 @@ co.edu.sena.productsreact/
 
 | Entidad | Descripción |
 |---|---|
-| `User` | Usuario del sistema con email, contraseña cifrada y rol |
+| `User` | Usuario del sistema con email, contraseña cifrada con BCrypt y rol |
 | `Rol` | Rol de seguridad: ROLE_ADMIN, ROLE_ODONTOLOGO, ROLE_RECEPCIONISTA, ROLE_TECNICO, ROLE_PACIENTE |
 | `PerfilUsuario` | Datos personales extendidos del usuario (nombres, teléfono, documento) |
 | `Paciente` | Paciente vinculado a un User; incluye historial de alergias |
@@ -80,7 +80,7 @@ co.edu.sena.productsreact/
 | `Cita` | Cita odontológica entre paciente y odontólogo con fecha, hora y estado |
 | `CitaServicio` | Relación M-M entre Cita y Servicio |
 | `Servicio` | Servicio odontológico con nombre, descripción, valor y duración |
-| `SubServicio` | Subdivsión de un servicio (ej. Limpieza → Tartrectomía) |
+| `SubServicio` | Subdivisión de un servicio (ej. Limpieza → Tartrectomía) |
 | `Procedimiento` | Procedimiento ejecutado en una cita; tiene estado y notas médicas |
 | `Orden` | Orden de laboratorio derivada de un procedimiento |
 | `Entrega` | Registro de entrega de una orden de laboratorio |
@@ -220,8 +220,8 @@ co.edu.sena.productsreact/
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/api/notificaciones/mis` | Listar todas las notificaciones del usuario autenticado |
-| GET | `/api/notificaciones/mis/no-leidas` | Listar notificaciones no leídas del usuario autenticado |
-| PATCH | `/api/notificaciones/marcar-todas-leidas` | Marcar todas las notificaciones del usuario como leídas |
+| GET | `/api/notificaciones/mis/no-leidas` | Listar notificaciones no leídas |
+| PATCH | `/api/notificaciones/marcar-todas-leidas` | Marcar todas como leídas |
 
 ---
 
@@ -231,9 +231,9 @@ co.edu.sena.productsreact/
 - **Refresh Token:** 7 días, almacenado en BD para invalidación explícita.
 - **@PreAuthorize:** anotaciones por método para control granular de permisos.
 - **CORS:** configurado para permitir el origen del frontend en desarrollo y producción.
-- **Contraseñas:** cifradas con BCrypt antes de almacenar.
+- **Contraseñas:** cifradas con **BCrypt** (algoritmo de hashing adaptativo con sal aleatoria incluida; factor de costo 12). No se utiliza SHA-256 ni ningún hash de propósito general para contraseñas.
 - **OAuth2:** autenticación con Google o GitHub genera JWT propio del sistema.
-- **Notificación de login:** al iniciar sesión (credenciales o OAuth2), se guarda automáticamente una notificación de tipo `LOGIN` en la tabla `notificaciones`. Esta notificación aparece en la campanita de la interfaz del usuario. No se envía ningún correo electrónico de alerta.
+- **Notificación de login:** al iniciar sesión (credenciales o OAuth2), se guarda automáticamente una notificación de tipo `LOGIN` en la tabla `notificaciones`. Esta notificación aparece en la campana de la interfaz del usuario. **No se envía ningún correo electrónico de alerta de seguridad.**
 
 ---
 
@@ -272,7 +272,7 @@ PAYPAL_CLIENT_SECRET=...
 PAYPAL_MODE=sandbox
 ```
 
-> **NUNCA** incluyas estas claves en el código fuente ni en el repositorio de Git.
+> **NUNCA** incluyas estas claves en el código fuente ni en el repositorio de Git. GitHub Secret Scanning está activo y bloqueará cualquier push que contenga claves expuestas.
 
 ---
 
@@ -325,4 +325,4 @@ Proyecto académico — SENA 2026. Todos los derechos reservados.
 
 ---
 
-*DentVision API v2.0 — SENA 2026*
+*DentVision API v2.1 — SENA 2026*
