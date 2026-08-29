@@ -14,6 +14,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 // Clase base de Spring Security para excepciones de autenticación
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 // FieldError: representa un error de validación en un campo específico del DTO
 import org.springframework.validation.FieldError;
 // Excepción lanzada por Spring cuando falla la validación de @Valid/@Validated en un DTO
@@ -118,6 +119,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
                 ApiError.of(HttpStatus.UNAUTHORIZED.value(), "Unauthorized",
                         "No autenticado: " + ex.getMessage(), req.getRequestURI())
+        );
+    }
+
+    // Las restricciones de @PreAuthorize lanzan AuthorizationDeniedException.
+    // Debe responder 403 y no ser capturada por el manejador genérico como 500.
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AuthorizationDeniedException ex, HttpServletRequest req) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                ApiError.of(HttpStatus.FORBIDDEN.value(), "Forbidden",
+                        "No tienes permisos para acceder a este recurso", req.getRequestURI())
         );
     }
 

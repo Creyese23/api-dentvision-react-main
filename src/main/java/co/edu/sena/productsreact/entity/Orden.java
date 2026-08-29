@@ -42,6 +42,13 @@ public class Orden {
     @Column(name = "imagen_diagnostica", columnDefinition = "LONGTEXT")
     private String imagenDiagnostica;
 
+    @Column(name = "odontograma", columnDefinition = "LONGTEXT")
+    private String odontograma;
+
+    // Color/tono dental solicitado al laboratorio (ej: "A2", "B1")
+    @Column(length = 30)
+    private String color;
+
     // Estado de la orden. Valores posibles: "PENDIENTE", "EN_PROCESO", "COMPLETADA", "CANCELADA"
     @Column(nullable = false, length = 30)
     // @Builder.Default: cuando se crea con Builder, el estado inicial es "PENDIENTE"

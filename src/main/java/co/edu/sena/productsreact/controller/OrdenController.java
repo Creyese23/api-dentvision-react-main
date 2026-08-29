@@ -28,7 +28,7 @@ public class OrdenController {
     // @GetMapping sin ruta adicional mapea GET /api/ordenes?estado=PENDIENTE (lista órdenes por estado)
     @GetMapping
     // Solo personal clínico y técnico puede ver las órdenes de trabajo
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO','ROLE_RECEPCIONISTA')")
     // @RequestParam con defaultValue: extrae el parámetro "estado" de la URL; si no se envía, usa "PENDIENTE" por defecto
     public ResponseEntity<List<OrdenResponse>> porEstado(@RequestParam(defaultValue = "PENDIENTE") String estado) {
         // Delega al servicio la consulta de todas las órdenes que tienen el estado dado (PENDIENTE, EN_PROCESO, COMPLETADA, etc.)
@@ -51,12 +51,18 @@ public class OrdenController {
     // @GetMapping("/{id}") mapea GET /api/ordenes/{id} (detalle de una orden específica)
     @GetMapping("/{id}")
     // Solo personal clínico y técnico puede ver el detalle de una orden
-    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO','ROLE_RECEPCIONISTA')")
     // @PathVariable Long id: extrae el ID de la orden de la URL
     public ResponseEntity<OrdenResponse> obtener(@PathVariable Long id) {
         // Delega al servicio la búsqueda de la orden con ese ID; lanza excepción si no existe
         // ResponseEntity.ok() responde 200 OK con los datos completos de la orden
         return ResponseEntity.ok(ordenService.obtener(id));
+    }
+
+    @PatchMapping("/{id}/odontograma")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO','ROLE_TECNICO')")
+    public ResponseEntity<OrdenResponse> actualizarOdontograma(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        return ResponseEntity.ok(ordenService.actualizarOdontograma(id, body.get("odontograma")));
     }
 
     // @PostMapping mapea POST /api/ordenes (crea una nueva orden de trabajo de laboratorio)

@@ -77,8 +77,8 @@ public class PacienteController {
 
     // @GetMapping("/pendientes-activacion") mapea GET /api/pacientes/pendientes-activacion
     @GetMapping("/pendientes-activacion")
-    // Solo el ADMIN puede ver la lista de usuarios que se registraron pero aún no han sido activados como pacientes
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    // ADMIN y RECEPCIONISTA pueden ver la lista de usuarios que se registraron pero aún no han sido activados como pacientes
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA')")
     public ResponseEntity<List<UsuarioResponse>> pendientesActivacion() {
         // Delega al servicio la consulta de usuarios registrados que no tienen aún un perfil de paciente activo
         // ResponseEntity.ok() responde 200 OK con la lista de UsuarioResponse pendientes
@@ -87,8 +87,8 @@ public class PacienteController {
 
     // @PostMapping("/activar/{idUsuario}") mapea POST /api/pacientes/activar/{idUsuario}
     @PostMapping("/activar/{idUsuario}")
-    // Solo el ADMIN puede activar un usuario como paciente
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    // ADMIN y RECEPCIONISTA pueden activar un usuario como paciente
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_RECEPCIONISTA')")
     // @PathVariable Long idUsuario: extrae el ID del usuario de la URL para identificar a quién activar
     public ResponseEntity<PacienteResponse> activar(@PathVariable Long idUsuario) {
         // Delega al servicio la creación del perfil de paciente asociado al usuario con ese ID

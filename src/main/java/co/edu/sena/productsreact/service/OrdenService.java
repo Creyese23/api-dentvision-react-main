@@ -90,6 +90,8 @@ public class OrdenService {
         Orden orden = Orden.builder()
                 .procedimiento(procedimiento)    // Asocia la orden al procedimiento odontológico
                 .descripcion(req.descripcion())  // Descripción del trabajo de laboratorio a realizar
+                .color(req.color())              // Color/tono dental solicitado al laboratorio
+                .odontograma(req.odontograma())
                 .estado("PENDIENTE").build();    // Estado inicial: la orden está pendiente de inicio
         Orden saved = ordenRepository.save(orden); // Persiste la orden en la BD
 
@@ -151,6 +153,13 @@ public class OrdenService {
         Orden o = getOrThrow(id);
         o.setImagenDiagnostica(imagen); // Guarda la URL de la imagen (almacenada externamente, ej. en la nube)
         // Persiste el cambio y retorna el DTO con la imagen actualizada
+        return OrdenResponse.from(ordenRepository.save(o));
+    }
+
+    @Transactional
+    public OrdenResponse actualizarOdontograma(Long id, String odontograma) {
+        Orden o = getOrThrow(id);
+        o.setOdontograma(odontograma);
         return OrdenResponse.from(ordenRepository.save(o));
     }
 
