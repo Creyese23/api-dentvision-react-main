@@ -80,6 +80,12 @@ public class EmpleadoController {
         return ResponseEntity.ok(empleadoService.actualizar(id, request));
     }
 
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<EmpleadoResponse> toggleEstado(@PathVariable Long id) {
+        return ResponseEntity.ok(empleadoService.toggleEstado(id));
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {

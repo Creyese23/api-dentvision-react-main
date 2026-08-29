@@ -127,9 +127,10 @@ public class FacturaService {
         Servicio servicio = servicioRepository.findById(req.idServicio())
                 .orElseThrow(() -> new ResourceNotFoundException("Servicio " + req.idServicio() + " no encontrado"));
 
-        BigDecimal precioUnitario = BigDecimal.ZERO; // Precio inicial en cero
+        // Precio por defecto: el del servicio padre (si no tiene precio definido, queda en cero)
+        BigDecimal precioUnitario = servicio.getPrecio() != null ? servicio.getPrecio() : BigDecimal.ZERO;
         if (req.idSubServicio() != null) {
-            // Si se especificó un sub-servicio, obtiene su precio específico
+            // Si se especificó un sub-servicio, su precio tiene prioridad sobre el del servicio padre
             SubServicio sub = subServicioRepository.findById(req.idSubServicio())
                     .orElseThrow(() -> new ResourceNotFoundException("SubServicio " + req.idSubServicio() + " no encontrado"));
             if (sub.getPrecio() != null) {

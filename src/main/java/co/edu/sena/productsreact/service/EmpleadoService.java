@@ -188,6 +188,13 @@ public class EmpleadoService {
     }
 
     @Transactional
+    public EmpleadoResponse toggleEstado(Long id) {
+        Empleado e = getOrThrow(id);
+        e.setEstado(!Boolean.TRUE.equals(e.getEstado()));
+        return EmpleadoResponse.from(empleadoRepository.save(e));
+    }
+
+    @Transactional
     public void eliminar(Long id) {
         Empleado e = getOrThrow(id);
         e.setEstado(false);

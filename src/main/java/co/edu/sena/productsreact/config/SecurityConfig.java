@@ -81,8 +81,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         // Rutas del flujo OAuth2 (inicio y callback) son públicas para permitir el redirect
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        // Listado de servicios y subservicios es público (para mostrar en la landing page)
-                        .requestMatchers("/api/servicios", "/api/servicios/*/sub").permitAll()
+                        // Listado de servicios, detalle por id y subservicios es público (para mostrar en la landing page)
+                        .requestMatchers("/api/servicios", "/api/servicios/*", "/api/servicios/*/sub").permitAll()
                         // Ruta raíz y página de error son accesibles sin autenticación
                         .requestMatchers("/", "/error").permitAll()
                         // Cualquier otra ruta requiere que el usuario esté autenticado (con JWT válido)
