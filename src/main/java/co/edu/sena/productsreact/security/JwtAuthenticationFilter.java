@@ -67,10 +67,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Extrae el email (subject) del payload del token JWT
             final String username = jwtService.extractUsername(jwt);
 
-            // Solo continúa si se obtuvo un email Y el usuario aún no está autenticado en este hilo
-            // SecurityContextHolder.getContext().getAuthentication() == null evita re-autenticar
-            if (username != null
-                    && SecurityContextHolder.getContext().getAuthentication() == null) {
+            // Siempre que llegue un Bearer token válido, se re-autentica con él, sin importar si
+            // el SecurityContext ya tenía una Authentication cargada. La política de sesión
+            // IF_REQUIRED (necesaria para el flujo OAuth2) hace que Spring restaure la
+            // Authentication guardada en la sesión (JSESSIONID) ANTES de que corra este filtro;
+            // si se omitía re-autenticar cuando ya había algo en el contexto, un usuario que
+            // inicia sesión con otra cuenta en el mismo navegador (misma cookie de sesión) seguía
+            // siendo tratado como el usuario de la sesión anterior pese a enviar un JWT distinto.
+            if (username != null) {
 
                 // Carga los datos completos del usuario desde la BD usando su email
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
