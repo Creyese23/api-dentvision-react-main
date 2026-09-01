@@ -39,6 +39,13 @@ public class ProcedimientoController {
         return ResponseEntity.ok(procedimientoService.listarPorCita(citaId));
     }
 
+    /** Historia clinica completa de un paciente (todos sus procedimientos), para uso del odontologo. */
+    @GetMapping("/paciente/{pacienteId}")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    public ResponseEntity<List<ProcedimientoResponse>> porPaciente(@PathVariable Long pacienteId) {
+        return ResponseEntity.ok(procedimientoService.listarPorPaciente(pacienteId));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
     public ResponseEntity<ProcedimientoResponse> obtener(@PathVariable Long id) {

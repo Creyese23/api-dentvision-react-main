@@ -101,6 +101,16 @@ public class ProcedimientoService {
     }
 
     /**
+     * Lista la historia clínica completa de un paciente (todos sus procedimientos,
+     * de todas sus citas). Usada por el odontólogo para consultar el historial
+     * de cualquier paciente, no solo el propio.
+     */
+    public List<ProcedimientoResponse> listarPorPaciente(Long pacienteId) {
+        return procedimientoRepository.findByCitaPacienteIdWithDetails(pacienteId)
+                .stream().map(ProcedimientoResponse::from).toList();
+    }
+
+    /**
      * Obtiene un procedimiento específico por su ID con todos sus detalles.
      * Lanza excepción si no existe.
      */
