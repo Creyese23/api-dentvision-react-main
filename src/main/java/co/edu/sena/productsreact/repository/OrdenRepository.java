@@ -4,11 +4,16 @@ package co.edu.sena.productsreact.repository;
 import co.edu.sena.productsreact.entity.Orden;
 // JpaRepository: provee operaciones CRUD para la entidad
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 // @Repository: declara la interfaz como bean de repositorio de Spring
 import org.springframework.stereotype.Repository;
 
 // Lista para devolver múltiples resultados
 import java.util.List;
+import java.util.Optional;
 
 // @Repository: Spring implementa esta interfaz automáticamente al iniciar la aplicación
 @Repository
@@ -24,4 +29,8 @@ public interface OrdenRepository extends JpaRepository<Orden, Long> {
     // Filtra órdenes por su estado (ej: "PENDIENTE", "EN_PROCESO", "COMPLETADA", "CANCELADA")
     // Útil para el panel de gestión de órdenes de trabajo
     List<Orden> findByEstado(String estado);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Orden o where o.id = :id")
+    Optional<Orden> findByIdForUpdate(@Param("id") Long id);
 }

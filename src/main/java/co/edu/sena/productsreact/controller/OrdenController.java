@@ -1,5 +1,6 @@
 package co.edu.sena.productsreact.controller;
 
+import co.edu.sena.productsreact.dto.orden.OrdenArchivoDiagnosticoRequest;
 // Importa los DTOs usados para recibir y enviar datos de órdenes de trabajo de laboratorio
 import co.edu.sena.productsreact.dto.orden.OrdenRequest;  // Datos que el cliente envía para crear una orden de trabajo
 import co.edu.sena.productsreact.dto.orden.OrdenResponse; // Datos de la orden que el servidor devuelve al cliente
@@ -95,5 +96,15 @@ public class OrdenController {
         // Delega al servicio el almacenamiento de la imagen y su asociación a la orden
         // ResponseEntity.ok() responde 200 OK con la OrdenResponse actualizada que incluye la referencia a la imagen
         return ResponseEntity.ok(ordenService.subirImagenDiagnostica(id, body.get("imagen")));
+    }
+
+    @PatchMapping("/{id}/archivos")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN','ROLE_ODONTOLOGO')")
+    public ResponseEntity<Void> agregarArchivoDiagnostico(
+            @PathVariable Long id,
+            @Valid @RequestBody OrdenArchivoDiagnosticoRequest request
+    ) {
+        ordenService.agregarArchivoDiagnostico(id, request);
+        return ResponseEntity.noContent().build();
     }
 }

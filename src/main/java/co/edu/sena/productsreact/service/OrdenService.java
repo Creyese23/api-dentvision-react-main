@@ -1,5 +1,6 @@
 package co.edu.sena.productsreact.service;
 
+import co.edu.sena.productsreact.dto.orden.OrdenArchivoDiagnosticoRequest;
 // Importaciones de DTOs para órdenes de trabajo
 import co.edu.sena.productsreact.dto.orden.OrdenRequest;  // DTO con los datos para crear una nueva orden
 import co.edu.sena.productsreact.dto.orden.OrdenResponse; // DTO con los datos de una orden que se devuelve al cliente
@@ -23,11 +24,18 @@ import co.edu.sena.productsreact.repository.UserRepository;         // Repositor
 import lombok.extern.slf4j.Slf4j;
 
 import lombok.RequiredArgsConstructor; // Genera el constructor con inyección de dependencias
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;                    // Marca la clase como servicio de Spring
 import org.springframework.transaction.annotation.Transactional; // Para manejar transacciones de escritura
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Base64;
 import java.time.LocalDateTime; // Para registrar la fecha y hora de la entrega
 import java.util.List;          // Colección de elementos
+import java.util.Map;
+import java.util.regex.Pattern;
 
 // @Service: Spring registra esta clase como componente de lógica de negocio
 @Service
@@ -37,6 +45,12 @@ import java.util.List;          // Colección de elementos
 @org.springframework.transaction.annotation.Transactional(readOnly = true)
 @Slf4j
 public class OrdenService {
+    private static final String DIAGNOSTIC_MANIFEST_PREFIX =
+            "{\"format\":\"dentvision-diagnostic-files-v1\",\"files\":[";
+    private static final int MAX_DIAGNOSTIC_FILE_BYTES = 10 * 1024 * 1024;
+    private static final int MAX_DIAGNOSTIC_BASE64_CHARS = 14_000_000;
+    private static final Pattern DIAGNOSTIC_FILE_NAME_PATTERN =
+            Pattern.compile("[<>:\"/\\\\|?*\\u0000-\\u001f]");
 
     // Repositorio principal para consultar y persistir órdenes de trabajo en la BD
     private final OrdenRepository ordenRepository;
@@ -48,6 +62,7 @@ public class OrdenService {
     private final NotificacionRepository notificacionRepository;
     // Repositorio para obtener los técnicos a notificar
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      * Lista todas las órdenes de trabajo que tienen un estado específico.
@@ -152,6 +167,71 @@ public class OrdenService {
         o.setImagenDiagnostica(imagen); // Guarda la URL de la imagen (almacenada externamente, ej. en la nube)
         // Persiste el cambio y retorna el DTO con la imagen actualizada
         return OrdenResponse.from(ordenRepository.save(o));
+    }
+
+    @Transactional
+    public void agregarArchivoDiagnostico(Long id, OrdenArchivoDiagnosticoRequest request) {
+        if (request.base64().length() > MAX_DIAGNOSTIC_BASE64_CHARS) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "El archivo supera el límite de 10 MB");
+        }
+
+        String extension = request.name().substring(request.name().lastIndexOf('.') + 1);
+        if (!request.mimeType().equals("model/" + extension.toLowerCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El tipo del archivo no coincide con su extensión");
+        }
+
+        byte[] content;
+        try {
+            content = Base64.getDecoder().decode(request.base64());
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El archivo diagnóstico no tiene un formato válido");
+        }
+        if (content.length == 0 || content.length > MAX_DIAGNOSTIC_FILE_BYTES) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "El archivo supera el límite de 10 MB");
+        }
+
+        Orden orden = ordenRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Orden " + id + " no encontrada"));
+        String existing = orden.getImagenDiagnostica();
+        if (existing != null && existing.contains("\"id\":\"" + request.id() + "\"")) return;
+
+        String safeName = DIAGNOSTIC_FILE_NAME_PATTERN.matcher(request.name()).replaceAll("_").trim();
+        if (safeName.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del archivo no es válido");
+        }
+
+        String newFile = toDiagnosticJson(Map.of(
+                "id", request.id(),
+                "name", safeName,
+                "mimeType", request.mimeType(),
+                "base64", request.base64()
+        ));
+        String updated;
+        if (existing == null || existing.isBlank()) {
+            updated = DIAGNOSTIC_MANIFEST_PREFIX + newFile + "]}";
+        } else if (existing.startsWith(DIAGNOSTIC_MANIFEST_PREFIX) && existing.endsWith("]}")) {
+            String files = existing.substring(DIAGNOSTIC_MANIFEST_PREFIX.length(), existing.length() - 2);
+            updated = existing.substring(0, existing.length() - 2) + (files.isEmpty() ? "" : ",") + newFile + "]}";
+        } else if (existing.startsWith("{")) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El manifiesto actual de archivos no es válido");
+        } else {
+            String legacyFile = toDiagnosticJson(Map.of(
+                    "name", "",
+                    existing.startsWith("data:") ? "dataUrl" : "href", existing
+            ));
+            updated = DIAGNOSTIC_MANIFEST_PREFIX + legacyFile + "," + newFile + "]}";
+        }
+
+        orden.setImagenDiagnostica(updated);
+        ordenRepository.save(orden);
+    }
+
+    private String toDiagnosticJson(Map<String, String> file) {
+        try {
+            return objectMapper.writeValueAsString(file);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("No se pudo serializar el archivo diagnóstico", exception);
+        }
     }
 
     /**
