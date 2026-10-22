@@ -1,6 +1,6 @@
 # DentVision API
 
-API REST para el sistema de gestión de clínica odontológica **DENTVISION**, desarrollada con **Spring Boot 3.x** y **Java 21** en el marco del programa **Tecnólogo en Análisis y Desarrollo de Software (ADSO) — ficha 3067454** del SENA.
+API REST para el sistema de gestión de clínica odontológica **DENTVISION**, desarrollada con **Spring Boot 3.x** y **Java 21** en el marco del programa **Tecnólogo en Análisis y Desarrollo de Software**.
 
 Instructor: **Jeyson David Zúñiga Gómez**
 
@@ -321,8 +321,8 @@ cp .env.example .env
 
 ## Licencia
 
-Proyecto académico — SENA 2026. Todos los derechos reservados.
+DENTVISION 2026. Todos los derechos reservados.
 
 ---
 
-*DentVision API v2.1 — SENA 2026*
+*DentVision API v2.1 — DENTVISION 2026*
