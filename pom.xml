@@ -15,7 +15,7 @@
     <artifactId>dentvision-react-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>dentvision-react-api</name>
-    <description>API REST para actividad de live-coding React + Vite (SENA ADSO)</description>
+    <description>API REST React + Vite</description>
 
     <properties>
         <java.version>21</java.version>
